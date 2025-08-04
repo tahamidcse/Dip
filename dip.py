@@ -1,16 +1,4 @@
-#----------------------------------------------------
-#--- To analyse different colored images.
-#----------------------------------------------------
-#--- Sangeeta Biswas, Ph.D.
-#--- Associate Professor
-#--- Department of Computer Science and Engineering
-#--- University of Rajshahi
-#--- Rajshahi-6205, Bangladesh
-#----------------------------------------------------
-# 01.08.2025
-#----------------------------------------------------
 
-#--- Import necessary modules
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
