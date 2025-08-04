@@ -2,6 +2,55 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy as np
+import matplotlib.pyplot as plt
+
+def generate(height=50, width=256):
+    levels = np.linspace(0, 255, width, dtype=np.uint8)
+
+    
+    gray = np.dstack([np.tile(levels, (height, 1))]*3)
+
+    
+    red = np.dstack([np.tile(levels, (height, 1)),
+                     np.zeros((height, width), dtype=np.uint8),
+                     np.zeros((height, width), dtype=np.uint8)])
+
+    
+    green = np.dstack([np.zeros((height, width), dtype=np.uint8),
+                       np.tile(levels, (height, 1)),
+                       np.zeros((height, width), dtype=np.uint8)])
+
+    
+    blue = np.dstack([np.zeros((height, width), dtype=np.uint8),
+                      np.zeros((height, width), dtype=np.uint8),
+                      np.tile(levels, (height, 1))])
+
+    cyan = np.dstack([np.zeros((height, width), dtype=np.uint8),
+                      np.tile(levels, (height, 1)),
+                      np.tile(levels, (height, 1))])
+
+    
+    magenta = np.dstack([np.tile(levels, (height, 1)),
+                         np.zeros((height, width), dtype=np.uint8),
+                         np.tile(levels, (height, 1))])
+
+
+    yellow = np.dstack([np.tile(levels, (height, 1)),
+                        np.tile(levels, (height, 1)),
+                        np.zeros((height, width), dtype=np.uint8)])
+
+    
+    combined = np.vstack([gray, red, green, blue, cyan, magenta, yellow])
+
+    return combined
+
+def display():
+    image = generate()
+    plt.imshow(image)
+    plt.title("Colors: Gray, Red, Green, Blue, Cyan, Magenta, Yellow")
+    plt.axis('off')
+    plt.show()
 
 def cyan_level():
   img_set=[]
@@ -118,6 +167,7 @@ def blue_level():
 def main():
 
     #--- Prepare different colored digital image
+    display()
     white_level()
     red_level()
     green_level()
@@ -125,6 +175,7 @@ def main():
     cyan_level()
     magenta_level()
     yellow_level()
+    
 
 
 
