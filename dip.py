@@ -5,6 +5,36 @@ import numpy as np
 import numpy as np
 import matplotlib.pyplot as plt
 
+def generate_hsv(width=360, height=256, value=255):
+ 
+    hsv_img = np.zeros((height, width, 3), dtype=np.uint8)
+
+    for y in range(height):
+        for x in range(width):
+            hsv_img[y, x] = [x / width * 180, y, value]
+
+    # Convert HSV to RGB
+    bgr_img = cv2.cvtColor(hsv_img, cv2.COLOR_HSV2BGR)
+    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+
+    return rgb_img
+
+def displayall():
+    """
+    Displays a 2D HSV color cube (Hue-Saturation slice with fixed Value).
+    """
+    color_cube = generate_hsv(width=360, height=256, value=255)
+
+    plt.figure(figsize=(10, 4))
+    plt.imshow(color_cube, aspect='auto')
+    plt.title("HSV Color Cube Slice (Hue vs Saturation, Value = 255)")
+    plt.xlabel("Hue (0° to 360°)")
+    plt.ylabel("Saturation (0 to 255)")
+    plt.xticks(np.linspace(0, 360, 7), labels=['0°','60°','120°','180°','240°','300°','360°'])
+    plt.yticks(np.linspace(0, 255, 6))
+    plt.grid(False)
+    plt.show()
+
 def generate(height=50, width=256):
     levels = np.linspace(0, 255, width, dtype=np.uint8)
 
@@ -167,7 +197,7 @@ def blue_level():
 def main():
 
     #--- Prepare different colored digital image
-    display()
+    displayall()
     white_level()
     red_level()
     green_level()
