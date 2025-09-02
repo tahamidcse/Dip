@@ -32,58 +32,61 @@ def main():
         shifted_img = np.clip(gray_img + 50, 0, 255).astype(np.uint8)
 
         
-        
         c_log = 255 / np.log(1 + np.max(gray_img))
         log_img = c_log * np.log(1 + gray_img)
         log_img = np.array(log_img, dtype=np.uint8)
 
-       
+        
         gamma_value = 0.3
         gamma_img = np.array(255 * (gray_img / 255) ** gamma_value, dtype=np.uint8)
         
         
-        fig, axes = plt.subplots(3, 3, figsize=(15, 15))
-
-       
-        axes[0, 0].imshow(rgb_img)
-        axes[0, 0].set_title('Original RGB')
-        axes[0, 0].axis('off')
+        plt.figure(figsize=(15, 15))
 
         
-        plt.sca(axes[0, 1])
+        plt.subplot(3, 3, 1)
+        plt.imshow(rgb_img)
+        plt.title('Original RGB')
+        plt.axis('off')
+
+        
+        plt.subplot(3, 3, 2)
         prepare_histogram(gray_img, 'Original Histogram')
 
         
-        axes[1, 0].imshow(inverse_img, cmap='gray')
-        axes[1, 0].set_title('Inverted Grayscale')
-        axes[1, 0].axis('off')
+        plt.subplot(3, 3, 4)
+        plt.imshow(inverse_img, cmap='gray')
+        plt.title('Inverted Grayscale')
+        plt.axis('off')
 
         
-        plt.sca(axes[1, 1])
+        plt.subplot(3, 3, 5)
         prepare_histogram(inverse_img, 'Inverted Histogram')
 
         
-        axes[1, 2].imshow(log_img, cmap='gray')
-        axes[1, 2].set_title('Logarithmic Transformation')
-        axes[1, 2].axis('off')
+        plt.subplot(3, 3, 6)
+        plt.imshow(log_img, cmap='gray')
+        plt.title('Logarithmic Transformation')
+        plt.axis('off')
 
         
-        plt.sca(axes[2, 0])
+        plt.subplot(3, 3, 7)
         prepare_histogram(log_img, 'Logarithmic Histogram')
 
-      
-        axes[2, 1].imshow(gamma_img, cmap='gray')
-        axes[2, 1].set_title(f'Gamma Correction (γ={gamma_value})')
-        axes[2, 1].axis('off')
         
-       
-        plt.sca(axes[2, 2])
+        plt.subplot(3, 3, 8)
+        plt.imshow(gamma_img, cmap='gray')
+        plt.title(f'Gamma Correction (γ={gamma_value})')
+        plt.axis('off')
+        
+        
+        plt.subplot(3, 3, 9)
         prepare_histogram(gamma_img, 'Gamma Histogram')
 
         
         plt.tight_layout()
         plt.show(block=False)
-        plt.pause(0.01) 
+        plt.pause(0.01)  
 
         
         key = cv2.waitKey(1)
