@@ -99,7 +99,19 @@ def main():
         
 
     # Apply histogram equalization
-    builtin_eq = cv2.equalizeHist(img)
+    img1=cv2.imread('Fig0316(1).png',0)
+    img2=cv2.imread('Fig0316(2).tif',0)
+    img3=cv2.imread('Fig0316(3).tif',0)
+
+    img4=cv2.imread('Fig0316(4).tif',0)
+        
+        
+
+    # Apply histogram equalization
+    builtin_eq1 = cv2.equalizeHist(img1)
+    builtin_eq2 = cv2.equalizeHist(img2)
+    builtin_eq3 = cv2.equalizeHist(img3)
+    builtin_eq4 = cv2.equalizeHist(img4)
     
     
    
@@ -107,11 +119,13 @@ def main():
     
 
     # Plot histogram of builtin equalized image
-    prepare_histogram(builtin_eq,'gray')
+    prepare_histogram(builtin_eq1,'gray')
     
     
     # Plot histogram of implemented equalized image
-    equalize_histogram(img,'gray')
+    equalize_histogram(img1,'gray')
+
+
 
 def display_imgset(img_set, color_set, title_set='', row=1, col=1):
     plt.figure(figsize=(8, 4))
@@ -137,3 +151,4 @@ def display_imgset(img_set, color_set, title_set='', row=1, col=1):
 
 if __name__ == '__main__':
     main()
+   
