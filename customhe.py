@@ -1,13 +1,13 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-def trunc(x):
+def round(x):
     y=int(x)
     if (y+0.5)>=x:
        return y
     else:
          return y+1
-def prepare_histogram2(img, color_channel):
+def prepare_histogram(img, color_channel):
 	#--- Prepare an array to hold the number of pixels
 	L=256
 	pixel_count = np.zeros((L,), dtype = np.uint)
@@ -31,14 +31,14 @@ def prepare_histogram2(img, color_channel):
 	plt.figure(figsize = (20,20))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, pixel_count, 'ro')
-	plt.title('Histogram of ' + color_channel + ' Channel')
+	plt.title('Built in Histogram of ' + color_channel + ' Channel')
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
 	plt.show()
 	plt.close()
 
 	
-def prepare_histogram(img, color_channel):
+def equalize_histogram(img, color_channel):
 	#--- Prepare an array to hold the number of pixels
 	L=256
 	pixel_count = np.zeros((L,), dtype = np.uint)
@@ -52,21 +52,20 @@ def prepare_histogram(img, color_channel):
 		for j in range(w):
 			pixel_value = img[i,j]
 			pixel_count[pixel_value] += 1
-	#print(pixel_count)
+	
 	pixels=h*w     
 	pdf=(pixel_count/pixels)     
 	csum=[]     
-	sum=0     
+	psum=0     
 	for i in pdf:         
-	    sum+=i;         
-	    csum.append(trunc(sum*(L-1)))
+	    psum+=i;         
+	    csum.append(round(psum*(L-1)))
 
 	cslen=len(csum)
 	pc=np.zeros((L,), dtype = np.uint)
 	for i in range(cslen):
 		pc[csum[i]]+=pixel_count[i]
-	#print(csum)
-	#print(pc)
+	
 
 
 
@@ -75,20 +74,22 @@ def prepare_histogram(img, color_channel):
 	plt.figure(figsize = (20,20))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, pixel_count, 'ro')
-	plt.title('Histogram of ' + color_channel + ' Channel')
+	plt.title('Non Equalized Histogram of ' + color_channel + ' Channel')
+	
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
 
 	plt.subplot(1, 2, 2)
 	plt.plot(x, pc,'ro')
-	plt.title('Histogram of ' + color_channel + ' Channel')
+	
+	plt.title('Implemented Equalized Histogram of ' + color_channel + ' Channel')
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
 	plt.show()
 	plt.close()
 def main():
     # Create a small grayscale image
-    imgl = np.array([
+    img = np.array([
         [4, 4, 4, 4, 4],
         [3, 4, 5, 4, 3],
         [3, 5, 6, 5, 3],
@@ -98,18 +99,19 @@ def main():
         
 
     # Apply histogram equalization
-    img_eq = cv2.equalizeHist(imgl)
-    print(img_eq)
+    builtin_eq = cv2.equalizeHist(img)
     
-    #
-
-    # Plot original and equalized images
+    
+   
    
     
 
-    # Plot histogram of equalized image
-    prepare_histogram2(img_eq,'gray')
-    prepare_histogram(imgl,'gray')
+    # Plot histogram of builtin equalized image
+    prepare_histogram(builtin_eq,'gray')
+    
+    
+    # Plot histogram of implemented equalized image
+    equalize_histogram(img,'gray')
 
 def display_imgset(img_set, color_set, title_set='', row=1, col=1):
     plt.figure(figsize=(8, 4))
