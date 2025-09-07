@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 def round(x):
     y=int(x)
-    if (y+0.5)>=x:
+    if x<=(y+0.5):
        return y
     else:
          return y+1
