@@ -134,20 +134,6 @@ def display_imgset(img_set, color_set, title_set='', row=1, col=1):
     plt.show()
     plt.close()
 
-def plot_histogram(image, title='Histogram'):
-    # Compute histogram using OpenCV
-    hist = cv2.calcHist([image], [0], None, [256], [0, 256])
-    
-    # Plot
-    plt.figure(figsize=(6, 4))
-    plt.plot(hist, color='black')
-    plt.title(title)
-    plt.xlabel('Pixel Intensity')
-    plt.ylabel('Frequency')
-    plt.grid(True)
-    plt.xlim([0, 256])
-    plt.show()
-    plt.close()
 
 if __name__ == '__main__':
     main()
