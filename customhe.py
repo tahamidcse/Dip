@@ -7,40 +7,71 @@ def trunc(x):
        return y
     else:
          return y+1
-    
-def prepare_histogram(img, color_channel):
+def prepare_histogram2(img, color_channel):
 	#--- Prepare an array to hold the number of pixels
-	pixel_count = np.zeros((8,), dtype = np.uint)
+	L=256
+	pixel_count = np.zeros((L,), dtype = np.uint)
 
 	#--- Count number of pixels
-	#h, w = img.shape
-	h=5
-	w=5
+	h, w = img.shape
+	
+	
 	
 	for i in range(h):
 		for j in range(w):
 			pixel_value = img[i,j]
 			pixel_count[pixel_value] += 1
 	print(pixel_count)
+	
+
+
+
+	#--- Plot histogram in two ways
+	x = np.arange(L)
+	plt.figure(figsize = (20,20))
+	plt.subplot(1, 2, 1)
+	plt.plot(x, pixel_count, 'ro')
+	plt.title('Histogram of ' + color_channel + ' Channel')
+	plt.xlabel('Pixel Values')
+	plt.ylabel('Number of Pixels')
+	plt.show()
+	plt.close()
+
+	
+def prepare_histogram(img, color_channel):
+	#--- Prepare an array to hold the number of pixels
+	L=256
+	pixel_count = np.zeros((L,), dtype = np.uint)
+
+	#--- Count number of pixels
+	h, w = img.shape
+	
+	
+	
+	for i in range(h):
+		for j in range(w):
+			pixel_value = img[i,j]
+			pixel_count[pixel_value] += 1
+	#print(pixel_count)
 	pixels=h*w     
 	pdf=(pixel_count/pixels)     
 	csum=[]     
 	sum=0     
 	for i in pdf:         
 	    sum+=i;         
-	    csum.append(trunc(sum*7))
+	    csum.append(trunc(sum*(L-1)))
 
 	cslen=len(csum)
-	pc=np.zeros((8,), dtype = np.uint)
+	pc=np.zeros((L,), dtype = np.uint)
 	for i in range(cslen):
 		pc[csum[i]]+=pixel_count[i]
-	print(csum)
-	print(pc)
+	#print(csum)
+	#print(pc)
 
 
 
 	#--- Plot histogram in two ways
-	x = np.arange(8)
+	x = np.arange(L)
 	plt.figure(figsize = (20,20))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, pixel_count, 'ro')
@@ -63,17 +94,22 @@ def main():
         [3, 5, 6, 5, 3],
         [3, 4, 5, 4, 3],
         [4, 4, 4, 4, 4]], dtype=np.uint8)  # Ensure dtype is uint8
+        
+        
 
     # Apply histogram equalization
     img_eq = cv2.equalizeHist(imgl)
-    prepare_histogram(imgl,'gray')
+    print(img_eq)
+    
+    #
 
     # Plot original and equalized images
    
     
 
     # Plot histogram of equalized image
-    plot_histogram(img_eq, title='Histogram of Equalized Image')
+    prepare_histogram2(img_eq,'gray')
+    prepare_histogram(imgl,'gray')
 
 def display_imgset(img_set, color_set, title_set='', row=1, col=1):
     plt.figure(figsize=(8, 4))
