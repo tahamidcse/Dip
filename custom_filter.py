@@ -31,11 +31,11 @@ def filter2D_custom(input_img, kernel):
 
 def same_convolve(input_img, kernel):
     h1, w1 = input_img.shape
-    h2 = kernel.shape[0] // 2
-    w2 = kernel.shape[1] // 2
+    ph2 = kernel.shape[0] // 2
+    pw2 = kernel.shape[1] // 2
 
-    #h2=h1+2
-    #w2=w1+2
+    h2=h1+2*ph2
+    w2=w1+2*pw2
 
     zero_padded_img = np.zeros((h2, w2))
     
@@ -219,9 +219,9 @@ def main(image_path):
         plt.title(titles[i], fontsize=10)
         plt.axis('off')
 
-plt.tight_layout()
-plt.show()
-plt.close()
+    plt.tight_layout()
+    plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
