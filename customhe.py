@@ -21,21 +21,31 @@ def prepare_histogram(img, color_channel):
 		for j in range(w):
 			pixel_value = img[i,j]
 			pixel_count[pixel_value] += 1
-	print(pixel_count)
+	
+	
 	
 
 
 
 	#--- Plot histogram in two ways
+	pdf=(pixel_count/(h*w))
+	cdf=pdf.cumsum()
 	x = np.arange(L)
 	plt.figure(figsize = (20,20))
-	plt.subplot(1, 2, 1)
+	plt.subplot(2, 2, 1)
 	plt.plot(x, pixel_count, 'ro')
 	plt.title('Built in Histogram of ' + color_channel + ' Channel')
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
+	plt.subplot(2, 2, 2)
+	plt.plot(x, cdf, 'ro')
+	plt.title('Built in CDF of ' + color_channel + ' Channel')
+	plt.xlabel('Pixel Values')
+	plt.ylabel('Number of Pixels')
+	plt.tight_layout()
 	plt.show()
 	plt.close()
+
 
 	
 def equalize_histogram(img, color_channel):
@@ -65,6 +75,9 @@ def equalize_histogram(img, color_channel):
 	pc=np.zeros((L,), dtype = np.uint)
 	for i in range(cslen):
 		pc[csum[i]]+=pixel_count[i]
+	   
+	pdfe=(pc/pixels) 
+	cdfe=pdfe.cumsum() 
 	
 
 
@@ -72,19 +85,27 @@ def equalize_histogram(img, color_channel):
 	#--- Plot histogram in two ways
 	x = np.arange(L)
 	plt.figure(figsize = (20,20))
-	plt.subplot(1, 2, 1)
+	plt.subplot(2, 2, 1)
 	plt.plot(x, pixel_count, 'ro')
 	plt.title('Non Equalized Histogram of ' + color_channel + ' Channel')
 	
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
 
-	plt.subplot(1, 2, 2)
+	plt.subplot(2, 2, 2)
 	plt.plot(x, pc,'ro')
 	
 	plt.title('Implemented Equalized Histogram of ' + color_channel + ' Channel')
 	plt.xlabel('Pixel Values')
 	plt.ylabel('Number of Pixels')
+	plt.subplot(2, 2, 3)
+	plt.plot(x, cdfe,'ro')
+	
+	
+	plt.title('Implemented Equalized CDF of ' + color_channel + ' Channel')
+	plt.xlabel('Pixel Values')
+	plt.ylabel('Number of Pixels')
+	plt.tight_layout()
 	plt.show()
 	plt.close()
 def main():
