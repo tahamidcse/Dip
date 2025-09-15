@@ -7,7 +7,7 @@ def main():
     ker=np.ones((3,3),dtype=np.uint8)
     ker2=np.ones((5,5),dtype=np.uint8)
     eimg=cv2.erode(img,ker,iterations=2)
-    dimg=cv2.dilate(mimg,ker,iterations=2)
+    dimg=cv2.dilate(eimg,ker,iterations=2)
     cv2.imshow('Original Image', img)
     cv2.imshow('Eroded Image', mimg)
     cv2.waitKey(0)
