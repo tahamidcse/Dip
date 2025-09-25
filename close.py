@@ -128,7 +128,9 @@ closed_image_cross = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_cross)
 cv2.imshow('Cross-shaped Kernel', closed_image_cross)
 
 # --- Diamond-shaped Kernel ---
-kernel_diamond = get_diamond_structuring_element(ksize[0])
+from skimage.morphology import diamond
+kernel_diamond = diamond(radius=2)
+
 closed_image_diamond = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_diamond)
 cv2.imshow('Diamond-shaped Kernel', closed_image_diamond)
 
