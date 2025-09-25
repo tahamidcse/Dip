@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from skimage.morphology import diamond
 def erode(input_img, kernel):
     """
     Performs a custom morphological erosion operation with padding.
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     kernel_rect = cv2.getStructuringElement(cv2.MORPH_RECT, ksize)
     kernel_ellipse = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ksize)
     kernel_cross = cv2.getStructuringElement(cv2.MORPH_CROSS, ksize)
-    kernel_diamond = get_diamond_structuring_element(ksize[0])
+    kernel_diamond = diamond(radius=2)
 
     # Perform Black Hat transform for each kernel
     # Built-in functions for rectangular, elliptical, and cross-shaped kernels
