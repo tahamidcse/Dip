@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from skimage.morphology import diamond
 
 def erode(input_img, kernel):
     """
