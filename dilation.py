@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from skimage.morphology import diamond
 
 def morphological_fit(input_img, kernel):
     """
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     cv2.imshow('Dilated (Cross-shaped Kernel)', dilated_cross)
 
     # --- 4. Diamond-shaped Kernel ---
-    kernel_diamond = get_diamond_structuring_element(ksize_dilate[0])
+    kernel_diamond = diamond(radius=2)
     dilated_diamond = cv2.dilate(input_image, kernel_diamond, iterations=1)
     cv2.imshow('Dilated (Diamond-shaped Kernel)', dilated_diamond)
 
