@@ -49,22 +49,11 @@ def dilate(input_img, kernel):
 
     return output_img
 
-def get_diamond_structuring_element(size):
-    """
-    Creates a diamond-shaped structuring element.
-    """
-    if size % 2 == 0:
-        raise ValueError("Kernel size must be an odd number.")
-    
-    kernel = np.zeros((size, size), dtype=np.uint8)
-    center = size // 2
-    
-    for i in range(size):
-        for j in range(size):
-            if abs(i - center) + abs(j - center) <= center:
-                kernel[i, j] = 1
-                
-    return kernel
+
+
+
+print(kernel.astype(int))
+
 
 if __name__ == '__main__':
     try:
@@ -86,7 +75,8 @@ if __name__ == '__main__':
     kernel_rect = cv2.getStructuringElement(cv2.MORPH_RECT, ksize)
     kernel_ellipse = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ksize)
     kernel_cross = cv2.getStructuringElement(cv2.MORPH_CROSS, ksize)
-    kernel_diamond = get_diamond_structuring_element(ksize[0])
+    # radius = 2 => gives a 5x5 diamond
+    kernel_diamond = diamond(radius=2)
 
     # Perform Black Hat transform for each kernel
     closed_rect = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_rect)
