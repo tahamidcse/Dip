@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from skimage.morphology import diamond
 def erode(input_img, kernel):
     """
     Performs a custom morphological fit (erosion) operation.
@@ -128,7 +128,7 @@ closed_image_cross = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_cross)
 cv2.imshow('Cross-shaped Kernel', closed_image_cross)
 
 # --- Diamond-shaped Kernel ---
-from skimage.morphology import diamond
+
 kernel_diamond = diamond(radius=2)
 
 closed_image_diamond = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_diamond)
