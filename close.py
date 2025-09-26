@@ -1,144 +1,102 @@
 import cv2
 import numpy as np
 from skimage.morphology import diamond
-def erode(input_img, kernel):
-    """
-    Performs a custom morphological fit (erosion) operation.
 
-    Args:
-        input_img (np.ndarray): The binary input image (0 or 255).
-        kernel (np.ndarray): The binary structuring element (0 or 255).
+def erode(img, kernel):
+    h, w = img.shape
+    kh, kw = kernel.shape
 
-    Returns:
-        np.ndarray: The resulting eroded image (0 or 255).
-    """
-    input_h, input_w = input_img.shape
-    kernel_h, kernel_w = kernel.shape
+    pad_h = kh // 2
+    pad_w = kw // 2
 
-    # Normalize inputs to 0-1 for correct mathematical operations
-    input_normalized = (input_img > 0).astype(np.uint8)
-    kernel_normalized = (kernel > 0).astype(np.uint8)
+    # Pad with white for erosion (255)
+    padded = cv2.copyMakeBorder(img, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=255)
 
-    # Output dimensions for 'valid' operation (no padding)
-    output_h = input_h - kernel_h + 1
-    output_w = input_w - kernel_w + 1
+    output = np.zeros_like(img, dtype=np.uint8)
+    kernel_mask = (kernel > 0)
 
-    # Initialize the output image with zeros
-    output_img = np.zeros((output_h, output_w), dtype=np.uint8)
-
-    # Loop through the input image to apply the kernel
-    for h in range(output_h):
-        for w in range(output_w):
-            # Extract the region of interest (ROI) from the input image
-            roi = input_normalized[h:h + kernel_h, w:w + kernel_w]
-
-            # Check for a "fit"
-            # A fit occurs if the kernel is a subset of the ROI.
-            if np.all(roi == kernel_normalized):
-                output_img[h, w] = 255  # Set to 255 if the kernel fits
-
-    return output_img
+    for y in range(h):
+        for x in range(w):
+            roi = padded[y:y + kh, x:x + kw]
+            output[y, x] = np.min(roi[kernel_mask])
+    return output
 
 def dilate(input_img, kernel):
     """
-    Performs a custom morphological hit (dilation) operation.
-
+    Performs a custom morphological dilation operation with padding.
+    
     Args:
         input_img (np.ndarray): The binary input image (0 or 255).
         kernel (np.ndarray): The binary structuring element (0 or 255).
-
+    
     Returns:
-        np.ndarray: The resulting dilated image (0 or 255).
+        np.ndarray: The resulting dilated image (0 or 255) of the same size as the input.
     """
     input_h, input_w = input_img.shape
     kernel_h, kernel_w = kernel.shape
     
-    # Pad the input image to handle border pixels
+    # Pad the input image
     pad_h = kernel_h // 2
     pad_w = kernel_w // 2
     padded_img = cv2.copyMakeBorder(input_img, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=0)
-
-    # Output dimensions for 'same' operation
+    
+    # Initialize the output image
     output_img = np.zeros_like(input_img, dtype=np.uint8)
-
+    
     # Normalize inputs to 0-1 for correct mathematical operations
     input_normalized = (padded_img > 0).astype(np.uint8)
     kernel_normalized = (kernel > 0).astype(np.uint8)
-
+    
     # Loop through the padded image
     for h in range(input_h):
         for w in range(input_w):
-            # Extract the region of interest (ROI) from the padded image
             roi = input_normalized[h:h + kernel_h, w:w + kernel_w]
-
-            # Check for a "hit" (Dilation): The ROI must overlap with the kernel.
             if np.sum(roi * kernel_normalized) > 0:
                 output_img[h, w] = 255
-
+    
     return output_img
 
-def get_diamond_structuring_element(ksize):
-    """
-    Generates a diamond-shaped structuring element.
+# Load image
+img = cv2.imread('morph.png', cv2.IMREAD_GRAYSCALE)
 
-    Args:
-        ksize (int): The size of the square bounding box for the diamond.
 
-    Returns:
-        np.ndarray: The binary diamond-shaped kernel.
-    """
-    kernel = np.zeros((ksize, ksize), np.uint8)
-    center = ksize // 2
-    for i in range(ksize):
-        for j in range(ksize):
-            if abs(i - center) + abs(j - center) <= center:
-                kernel[i, j] = 1
-    return kernel
+_, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
 
-# Load an image (e.g., a binary or grayscale image)
-# Make sure you have an image named 'morph.png' in the same directory.
-try:
-    img = cv2.imread('morph.png', cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        raise FileNotFoundError("Image file 'morph.png' not found.")
-except FileNotFoundError as e:
-    print(e)
-    # Create a dummy image for demonstration if the file is not found
-    print("Creating a dummy image for demonstration.")
-    img = np.zeros((200, 200), dtype=np.uint8)
-    cv2.rectangle(img, (50, 50), (150, 150), 255, -1)
-    cv2.circle(img, (100, 100), 20, 0, -1)
-
-# Define a kernel size
+# Define structuring elements
 ksize = (15, 15)
-
-# --- Rectangular Kernel ---
 kernel_rect = cv2.getStructuringElement(cv2.MORPH_RECT, ksize)
-closed_image_rect = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_rect)
-cv2.imshow('Rectangular Kernel', closed_image_rect)
-
-# --- Elliptical Kernel ---
 kernel_ellipse = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ksize)
-closed_image_ellipse = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse)
-cv2.imshow('Elliptical Kernel', closed_image_ellipse)
-
-# --- Cross-shaped Kernel ---
 kernel_cross = cv2.getStructuringElement(cv2.MORPH_CROSS, ksize)
-closed_image_cross = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_cross)
-cv2.imshow('Cross-shaped Kernel', closed_image_cross)
+kernel_diamond = diamond(radius=2).astype(np.uint8)
 
-# --- Diamond-shaped Kernel ---
+# === OpenCV Closings ===
+closed_rect_cv = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_rect)
+closed_ellipse_cv = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse)
+closed_cross_cv = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_cross)
+closed_diamond_cv = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_diamond)
 
-kernel_diamond = diamond(radius=2)
+# === Custom Closings (Dilate → Erode) ===
+closed_rect_custom = erode(dilate(img, kernel_rect), kernel_rect)
+closed_ellipse_custom = erode(dilate(img, kernel_ellipse), kernel_ellipse)
+closed_cross_custom = erode(dilate(img, kernel_cross), kernel_cross)
+closed_diamond_custom = erode(dilate(img, kernel_diamond), kernel_diamond)
 
-closed_image_diamond = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_diamond)
-cv2.imshow('Diamond-shaped Kernel', closed_image_diamond)
+# === Display ===
+cv2.imshow("Original", img)
 
-# --- Custom Close Operation (Erode + Dilate) with a Rectangular Kernel ---
-eroded_image_custom = dilate(img, kernel_rect) # Dilation first for closing
-closed_image_custom = erode(eroded_image_custom, kernel_rect)
-cv2.imshow('Closed Image (Custom Dilate + Erode)', closed_image_custom)
+cv2.imshow("OpenCV Close - Rect", closed_rect_cv)
+cv2.imshow("Custom Close - Rect", closed_rect_custom)
 
-# Wait for a key press and then close all windows
+cv2.imshow("OpenCV Close - Ellipse", closed_ellipse_cv)
+cv2.imshow("Custom Close - Ellipse", closed_ellipse_custom)
+
+cv2.imshow("OpenCV Close - Cross", closed_cross_cv)
+cv2.imshow("Custom Close - Cross", closed_cross_custom)
+
+cv2.imshow("OpenCV Close - Diamond", closed_diamond_cv)
+cv2.imshow("Custom Close - Diamond", closed_diamond_custom)
+
+# Optional: Visual diff
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
