@@ -1,0 +1,158 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def compute_histogram(tile):
+    """Computes the histogram of a tile."""
+    # Using np.bincount is faster than np.histogram for integer arrays
+    hist = np.bincount(tile.ravel(), minlength=256)
+    return hist
+
+def compute_cdf(hist):
+    """Computes the normalized Cumulative Distribution Function (CDF)."""
+    # The L-1 (255) scaling and r_k formula is implemented here.
+    cdf = hist.cumsum()
+
+    # Find the minimum non-zero value in the CDF for normalization
+    # (This is the standard approach to avoid dividing by zero and ensures a full range)
+    cdf_min = cdf.min() if cdf.min() > 0 else 0
+
+    # Apply the equalization formula: T(r_k) = floor((L-1) * (c(r_k) - c_min) / (c_max - c_min))
+    cdf_normalized = ((cdf - cdf_min) * 255) / (cdf.max() - cdf_min)
+
+    # Cast to 8-bit unsigned integer
+    cdf_normalized = cdf_normalized.astype('uint8')
+    return cdf_normalized
+
+def equalize_tile(tile):
+    """Applies standard histogram equalization to a single tile."""
+    hist = compute_histogram(tile)
+    cdf = compute_cdf(hist)
+    # The equalized pixel value is the CDF value at the original pixel intensity index
+    return cdf
+
+def adaptive_hist_equalization(img, tile_size=(8, 8)):
+    h, w = img.shape
+    tile_h, tile_w = tile_size
+
+    # Ensure image is in 8-bit format
+    if img.dtype != np.uint8:
+        img = img.astype(np.uint8)
+
+    # 1. Tiling and Padding (as you started)
+    n_tiles_y = (h + tile_h - 1) // tile_h  # ceil(h / tile_h)
+    n_tiles_x = (w + tile_w - 1) // tile_w  # ceil(w / tile_w)
+
+    pad_h = n_tiles_y * tile_h - h
+    pad_w = n_tiles_x * tile_w - w
+
+    # Use 'reflect' mode padding to avoid sharp edges at the border
+    img_padded = np.pad(img, ((0, pad_h), (0, pad_w)), mode='reflect')
+    H, W = img_padded.shape
+
+    # 2. & 3. Compute Equalization Mappings (CDFs)
+    # Store the equalization mapping (CDF) for each tile
+    # Mappings[i, j] will hold a 256-element array (the CDF)
+    mappings = np.zeros((n_tiles_y, n_tiles_x, 256), dtype=np.uint8)
+
+    for i in range(n_tiles_y):
+        for j in range(n_tiles_x):
+            y1, y2 = i * tile_h, (i + 1) * tile_h
+            x1, x2 = j * tile_w, (j + 1) * tile_w
+            tile = img_padded[y1:y2, x1:x2]
+            mappings[i, j] = equalize_tile(tile)
+
+    # 4. Interpolate Between Neighboring Tiles & 5. Combine All Tiles
+    enhanced_img_padded = np.zeros((H, W), dtype=np.uint8)
+
+    # Iterate over the centers of the tiles (interpolation is needed for all pixels)
+    for i in range(H):
+        for j in range(W):
+            # Calculate floating-point tile coordinates (normalized to 0 to n_tiles_y/x)
+            # This determines which 4 surrounding tiles' mappings will be used.
+            # We divide by tile_h/w to get the tile index, and subtract 0.5 to center
+            # the coordinates in the tile grid.
+            ty = i / tile_h - 0.5
+            tx = j / tile_w - 0.5
+
+            # Find the four surrounding tiles (TL, TR, BL, BR)
+            # Ensure the indices stay within the bounds of the mappings array
+            t_row = np.clip(np.floor(ty).astype(int), 0, n_tiles_y - 2)
+            t_col = np.clip(np.floor(tx).astype(int), 0, n_tiles_x - 2)
+
+            # Interpolation weights (distances from the top-left tile)
+            dy = ty - t_row
+            dx = tx - t_col
+
+            # Bilinear Interpolation Weights (1-w) * (1-h) for Top-Left, etc.
+            w_tl = (1 - dx) * (1 - dy)
+            w_tr = dx * (1 - dy)
+            w_bl = (1 - dx) * dy
+            w_br = dx * dy
+
+            # Get the four required CDF mappings
+            map_tl = mappings[t_row, t_col]
+            map_tr = mappings[t_row, t_col + 1]
+            map_bl = mappings[t_row + 1, t_col]
+            map_br = mappings[t_row + 1, t_col + 1]
+
+            # Get the original pixel intensity
+            pixel_intensity = img_padded[i, j]
+
+            # Apply each mapping to the original intensity
+            T_tl = map_tl[pixel_intensity]
+            T_tr = map_tr[pixel_intensity]
+            T_bl = map_bl[pixel_intensity]
+            T_br = map_br[pixel_intensity]
+
+            # The final enhanced pixel value is the weighted sum of the four transformed values
+            new_intensity = (w_tl * T_tl + w_tr * T_tr + w_bl * T_bl + w_br * T_br)
+
+            enhanced_img_padded[i, j] = np.clip(new_intensity, 0, 255).astype(np.uint8)
+
+    # Unpad the image to the original size
+    enhanced_img = enhanced_img_padded[:h, :w]
+    return enhanced_img
+
+# --- Example Usage ---
+
+# Load an image (make sure you have one, or generate a dummy one)
+image_file = '/content/Fig0309(a)(washed_out_aerial_image).tif'
+# Create a dummy image if file loading fails
+try:
+    # Attempt to load a real image
+    original_img = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
+    if original_img is None:
+        raise FileNotFoundError
+except FileNotFoundError:
+    print("\nFile not found or invalid. Generating a low-contrast sample image.")
+    # Create synthetic image with low contrast
+    original_img = np.zeros((200, 300), dtype=np.uint8) + 80  # Dark background
+    original_img[50:150, 50:250] = 120  # Gray rectangle
+    original_img[75:125, 100:200] = 160 # Lighter inner square
+
+# Apply the custom AHE function
+tile_size = (16, 16)
+enhanced_img_ahe = adaptive_hist_equalization(original_img, tile_size=tile_size)
+
+# Apply OpenCV's CLAHE for comparison (optimized AHE)
+clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=tile_size)
+enhanced_img_clahe = clahe.apply(original_img)
+
+# Display the results
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+axes[0].imshow(original_img, cmap='gray')
+axes[0].set_title('Original Image')
+axes[0].axis('off')
+
+axes[1].imshow(enhanced_img_ahe, cmap='gray')
+axes[1].set_title(f'Custom AHE (Tile: {tile_size})')
+axes[1].axis('off')
+
+axes[2].imshow(enhanced_img_clahe, cmap='gray')
+axes[2].set_title(f'OpenCV CLAHE (Tile: {tile_size}, Clip: 2.0)')
+axes[2].axis('off')
+
+plt.tight_layout()
+plt.show()
