@@ -113,17 +113,67 @@ def calculate_compression_stats(original_img, compressed_img, huffman_codes):
     print("-----------------------------")
 
     return original_size_bits, compressed_size_bits, compression_ratio
+# -------------------------------
+# Calculate Compression Statistics
+def calculate_compression_stats(original_img, huffman_codes, freq_map):
+    h, w = original_img.shape
+    total_pixels = h * w
 
+    # Original image: 8 bits per pixel
+    original_size_bits = total_pixels * 8
+
+    # Calculate b_avg (Average Code Length) and Compressed Size
+    compressed_size_bits = 0
+    b_avg = 0.0
+
+    # L is the number of unique intensity values (symbols)
+    L = len(freq_map)
+
+    # Calculate b_avg = sum(l_k * p_r(r_k))
+    for pixel_value, count in freq_map.items():
+        # r_k is the pixel_value
+        # p_r(r_k) is the probability: count / total_pixels
+        p_r_rk = count / total_pixels
+
+        # l_k is the length of the Huffman code
+        l_k = len(huffman_codes[pixel_value])
+
+        # Add to b_avg (weighted average)
+        b_avg += l_k * p_r_rk
+
+        # Calculate compressed size: Sum(l_k * count_k)
+        compressed_size_bits += l_k * count
+
+    # The Compression Ratio is defined as: (Compressed Size / Original Size)
+    # The image compression literature often defines Compression Ratio differently,
+    # but based on the provided formula context (Data Redundancy = 1 - 1/C),
+    # C is likely (Original Bits / Compressed Bits), so the inverse is used here:
+    compression_ratio = original_size_bits / compressed_size_bits  # Original / Compressed
+
+    # The 'Redundancy' formula from your image is: R = 1 - 1/C
+    # where C is the Compression Ratio (Original/Compressed)
+    data_redundancy = 1 - (1 / compression_ratio) if compression_ratio != 0 else np.inf
+
+    print("----- Compression Stats -----")
+    print(f"Total Pixels (M x N)  : {total_pixels}")
+    print(f"Original size (Fixed) : {original_size_bits} bits")
+    print(f"Compressed size (Huff): {compressed_size_bits} bits")
+    print(f"Average Code Length (b_avg) : {b_avg:.4f} bits/pixel")
+    print(f"Compression Ratio (C) : {compression_ratio:.4f} (Original/Compressed)")
+    print(f"Data Redundancy (R)   : {data_redundancy:.4f}")
+    print("-----------------------------")
+
+    return original_size_bits, compressed_size_bits, b_avg, compression_ratio
 # -------------------------------
 # Main Program
 def main():
+    # ... (code to load image) ...
     # Load grayscale image (CHANGE PATH)
-    img = cv2.imread('path_to_image.jpg', 0)
-    if img is None:
-        raise ValueError("Image not found or failed to load. Check the path.")
+    img = cv2.imread('/content/Picture2.png', 0)
+    # ...
 
     # 1. Frequency map
-    freq_map = calculate_frequencies(img)
+    freq_map = calculate_frequencies(img)  # <-- freq_map is calculated here
 
     # 2. Build Huffman tree
     root = build_huffman_tree(freq_map)
@@ -138,7 +188,8 @@ def main():
     decompressed_img = decompress_image(compressed_img, inverse_huffman_codes)
 
     # 6. Calculate compression stats
-    calculate_compression_stats(img, compressed_img, huffman_codes)
+    #    <-- Pass huffman_codes AND freq_map
+    calculate_compression_stats(img, huffman_codes, freq_map)
 
     # 7. Save decompressed image
     cv2.imwrite('reconstructed.png', decompressed_img)
