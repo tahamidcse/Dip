@@ -1,104 +1,149 @@
+import heapq
 import numpy as np
-from collections import Counter
-from bitarray import bitarray
-from heapq import heappush, heappop
+import cv2
 
-class HuffNode:
-    def __init__(self, symbol=None, freq=0, left=None, right=None):
-        self.symbol = symbol
+# -------------------------------
+# Huffman Node Class
+class Node:
+    def __init__(self, pixel_value, freq):
+        self.pixel_value = pixel_value
         self.freq = freq
-        self.left = left
-        self.right = right
+        self.left = None
+        self.right = None
 
     def __lt__(self, other):
         return self.freq < other.freq
 
-def build_huffman_tree(freq_dict):
-    heap = [HuffNode(sym, freq) for sym, freq in freq_dict.items()]
-    for node in heap:
-        heappush(heap, node)
+# -------------------------------
+# Build Huffman Tree
+def build_huffman_tree(freq_map):
+    heap = [Node(pixel, freq) for pixel, freq in freq_map.items() if freq > 0]
+    heapq.heapify(heap)
+
     while len(heap) > 1:
-        n1 = heappop(heap)
-        n2 = heappop(heap)
-        merged = HuffNode(None, n1.freq + n2.freq, n1, n2)
-        heappush(heap, merged)
-    return heap[0]
+        left = heapq.heappop(heap)
+        right = heapq.heappop(heap)
+        merged = Node(-1, left.freq + right.freq)
+        merged.left = left
+        merged.right = right
+        heapq.heappush(heap, merged)
 
-def generate_codes(node, prefix='', codebook={}):
-    if node is None:
-        return
-    if node.symbol is not None:
-        codebook[node.symbol] = prefix
-    generate_codes(node.left, prefix + '0', codebook)
-    generate_codes(node.right, prefix + '1', codebook)
-    return codebook
+    return heap[0] if heap else None
 
-def mat2huff(x):
-    # Check input
-    if not isinstance(x, (np.ndarray, list)):
-        raise ValueError("Input must be a 2D array or list")
-    
-    x = np.asarray(x)
-    if x.ndim != 2:
-        raise ValueError("Input must be 2D")
+# -------------------------------
+# Generate Huffman Codes (both directions)
+def generate_codes(root, code="", huffman_codes=None, inverse_huffman_codes=None):
+    if huffman_codes is None:
+        huffman_codes = {}
+    if inverse_huffman_codes is None:
+        inverse_huffman_codes = {}
 
-    # Convert to integers
-    x = np.round(x).astype(int)
-    xmin = x.min()
-    xmax = x.max()
-    
-    # Bias the minimum by 32768
-    pmin = int(xmin) + 32768
-    y_min = np.uint16(pmin)
+    if root is None:
+        return huffman_codes, inverse_huffman_codes
 
-    # Histogram
-    flat_x = x.flatten()
-    symbols = flat_x - xmin  # shift to zero-based indexing
-    counter = Counter(symbols)
-    
-    # Limit max histogram values to 65535
-    max_freq = max(counter.values())
-    if max_freq > 65535:
-        scale = 65535 / max_freq
-        for k in counter:
-            counter[k] = int(counter[k] * scale)
+    if root.left is None and root.right is None:
+        huffman_codes[root.pixel_value] = code
+        inverse_huffman_codes[code] = root.pixel_value
+        return huffman_codes, inverse_huffman_codes
 
-    hist = np.zeros(xmax - xmin + 1, dtype=np.uint16)
-    for sym, freq in counter.items():
-        hist[sym] = freq
+    generate_codes(root.left, code + "0", huffman_codes, inverse_huffman_codes)
+    generate_codes(root.right, code + "1", huffman_codes, inverse_huffman_codes)
 
-    # Build Huffman codebook
-    huff_tree = build_huffman_tree(counter)
-    huff_map = generate_codes(huff_tree)
+    return huffman_codes, inverse_huffman_codes
 
-    # Encode the data
-    encoded_bits = ''.join(huff_map[sym] for sym in symbols)
-    
-    # Pad to 16-bit alignment
-    pad_len = (16 - len(encoded_bits) % 16) % 16
-    encoded_bits += '0' * pad_len
+# -------------------------------
+# Frequency Calculator
+def calculate_frequencies(img):
+    freq = {}
+    h, w = img.shape
+    for i in range(h):
+        for j in range(w):
+            pixel = img[i, j]
+            freq[pixel] = freq.get(pixel, 0) + 1
+    return freq
 
-    # Convert to uint16 values
-    words = [encoded_bits[i:i+16] for i in range(0, len(encoded_bits), 16)]
-    uint16_vals = [int(word, 2) for word in words]
-    code = np.array(uint16_vals, dtype=np.uint16)
+# -------------------------------
+# Compress Image using Huffman Codes
+def compress_image(gray_img, huffman_codes):
+    h, w = gray_img.shape
+    compressed = [[''] * w for _ in range(h)]
+    for i in range(h):
+        for j in range(w):
+            pixel = gray_img[i][j]
+            compressed[i][j] = huffman_codes[pixel]
+    return compressed
 
-    # Output structure
-    y = {
-        'code': code,
-        'min': y_min,
-        'size': np.array(x.shape, dtype=np.uint32),
-        'hist': hist
-    }
+# -------------------------------
+# Decompress Image using Huffman Codes
+def decompress_image(compressed_img, inverse_huffman_codes):
+    h = len(compressed_img)
+    w = len(compressed_img[0])
+    decompressed = np.zeros((h, w), dtype=np.uint8)
+    for i in range(h):
+        for j in range(w):
+            code = compressed_img[i][j]
+            if code in inverse_huffman_codes:
+                decompressed[i][j] = inverse_huffman_codes[code]
+            else:
+                raise ValueError(f"Invalid code '{code}' at ({i},{j})")
+    return decompressed
 
-    return y
-# Example matrix
-img = np.array([[3, 3, 2], [1, 3, 2]])
+# -------------------------------
+# Calculate Compression Statistics
+def calculate_compression_stats(original_img, compressed_img, huffman_codes):
+    h, w = original_img.shape
+    total_pixels = h * w
 
-# Compress
-y = mat2huff(img)
+    # Original image: 8 bits per pixel
+    original_size_bits = total_pixels * 8
 
-print("Encoded Code:", y['code'])
-print("Min Value + 32768:", y['min'])
-print("Original Size:", y['size'])
-print("Histogram:", y['hist'])
+    # Compressed image: variable bits per pixel (Huffman)
+    compressed_size_bits = 0
+    for i in range(h):
+        for j in range(w):
+            pixel = original_img[i, j]
+            compressed_size_bits += len(huffman_codes[pixel])
+
+    compression_ratio = compressed_size_bits / original_size_bits
+
+    print("----- Compression Stats -----")
+    print(f"Original size   : {original_size_bits} bits ({original_size_bits // 8} bytes)")
+    print(f"Compressed size : {compressed_size_bits} bits ({compressed_size_bits // 8} bytes)")
+    print(f"Compression ratio: {compression_ratio:.4f} ({compression_ratio*100:.2f}%)")
+    print("-----------------------------")
+
+    return original_size_bits, compressed_size_bits, compression_ratio
+
+# -------------------------------
+# Main Program
+def main():
+    # Load grayscale image (CHANGE PATH)
+    img = cv2.imread('path_to_image.jpg', 0)
+    if img is None:
+        raise ValueError("Image not found or failed to load. Check the path.")
+
+    # 1. Frequency map
+    freq_map = calculate_frequencies(img)
+
+    # 2. Build Huffman tree
+    root = build_huffman_tree(freq_map)
+
+    # 3. Generate Huffman codes
+    huffman_codes, inverse_huffman_codes = generate_codes(root)
+
+    # 4. Compress image
+    compressed_img = compress_image(img, huffman_codes)
+
+    # 5. Decompress image
+    decompressed_img = decompress_image(compressed_img, inverse_huffman_codes)
+
+    # 6. Calculate compression stats
+    calculate_compression_stats(img, compressed_img, huffman_codes)
+
+    # 7. Save decompressed image
+    cv2.imwrite('reconstructed.png', decompressed_img)
+    print("Image compression and decompression completed successfully.")
+
+# -------------------------------
+if __name__ == "__main__":
+    main()
