@@ -1,5 +1,5 @@
-# 1st part link https://github.com/tahamidcse/Dip/blob/main/he_11.py
-#2nd part link https://github.com/tahamidcse/Dip/blob/main/local_transformations.py
+# 1st part link https://github.com/tahamidcse/Dip/blob/main/local_transformations.py
+#2nd part link https://github.com/tahamidcse/Dip/blob/main/he_11.py
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
