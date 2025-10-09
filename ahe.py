@@ -103,7 +103,9 @@ ahe_clahe_img = adaptive_hist_equalization_general(
 )
 
 clahe_cv = cv2.createCLAHE(clip_limit, tileGridSize=(12, 12)).apply(img)
-
+cv2.imwrite('ahe_img.jpg',ahe_img)
+cv2.imwrite('ahe_clahe_img.jpg',ahe_clahe_img)
+cv2.imwrite('clahe_cv.jpg',clahe_cv)
 fig, axes = plt.subplots(1, 4, figsize=(20, 5))
 axes[0].imshow(img, cmap='gray')
 axes[0].set_title("Original Image")
@@ -112,7 +114,7 @@ axes[0].axis('off')
 axes[1].imshow(ahe_img, cmap='gray')
 axes[1].set_title("Custom AHE")
 axes[1].axis('off')
-cv2.imwrite
+
 axes[2].imshow(ahe_clahe_img, cmap='gray')
 axes[2].set_title("Custom CLAHE")
 axes[2].axis('off')
