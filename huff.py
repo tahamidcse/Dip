@@ -196,8 +196,6 @@ def main():
             image[i][j] = all_pixels[idx]
             idx += 1
     img=image
-    img2=cv2.imread('fig089a.jpg',0)
-    img3=cv2.imread('fig089a.png',0)
     # ...
 
     # 1. Frequency map
@@ -222,7 +220,10 @@ def main():
     # 7. Save decompressed image
     cv2.imwrite('reconstructedraw.png', decompressed_img)
     print("Image compression and decompression completed successfully.")
+    huffman_table_list = [[pixel, code] for pixel, code in sorted(huffman_codes.items())]
 
+# Convert to 2D NumPy array of object type (since codes are strings)
+    huffman_table_matrix = np.array(huffman_table_list, dtype=object)
 # -------------------------------
 if __name__ == "__main__":
     main()
