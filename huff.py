@@ -1,6 +1,6 @@
 import heapq
 import numpy as np
-import cv2
+import cv2,random
 
 # -------------------------------
 # Huffman Node Class
@@ -88,7 +88,32 @@ def decompress_image(compressed_img, inverse_huffman_codes):
                 raise ValueError(f"Invalid code '{code}' at ({i},{j})")
     return decompressed
 
+# -------------------------------
+# Calculate Compression Statistics
+def calculate_compression_stats(original_img, compressed_img, huffman_codes):
+    h, w = original_img.shape
+    total_pixels = h * w
 
+    # Original image: 8 bits per pixel
+    original_size_bits = total_pixels * 8
+
+    # Compressed image: variable bits per pixel (Huffman)
+    compressed_size_bits = 0
+    for i in range(h):
+        for j in range(w):
+            pixel = original_img[i, j]
+            compressed_size_bits += len(huffman_codes[pixel])
+
+    compression_ratio = compressed_size_bits / original_size_bits
+
+    print("----- Compression Stats -----")
+    print(f"Original size   : {original_size_bits} bits ({original_size_bits // 8} bytes)")
+    print(f"Compressed size : {compressed_size_bits} bits ({compressed_size_bits // 8} bytes)")
+    print(f"Compression ratio: {compression_ratio:.4f} ({compression_ratio*100:.2f}%)")
+    print("-----------------------------")
+
+    return original_size_bits, compressed_size_bits, compression_ratio
+# -------------------------------
 # Calculate Compression Statistics
 def calculate_compression_stats(original_img, huffman_codes, freq_map):
     h, w = original_img.shape
@@ -140,11 +165,39 @@ def calculate_compression_stats(original_img, huffman_codes, freq_map):
 
     return original_size_bits, compressed_size_bits, b_avg, compression_ratio
 # -------------------------------
-# Main Program
 def main():
     # ... (code to load image) ...
     # Load grayscale image (CHANGE PATH)
-    img = cv2.imread('/content/Fig0809(a).tif', 0)
+    #img = cv2.imread('/content/Fig0809(a).tif', 0)
+    # ...
+        # Load grayscale image (CHANGE PATH)
+    height, width = 512, 512
+    total_pixels = height * width
+
+    # Calculate number of pixels in each intensity range
+    num_dark = int(0.6 * total_pixels)     # 60%
+    num_mid = int(0.3 * total_pixels)      # 30%
+    num_bright = total_pixels - num_dark - num_mid  # Remaining 10%
+
+    # Prepare pixel values
+    dark_pixels = [random.randint(0, 50) for _ in range(num_dark)]
+    mid_pixels = [random.randint(51, 150) for _ in range(num_mid)]
+    bright_pixels = [random.randint(151, 255) for _ in range(num_bright)]
+
+    # Combine and shuffle
+    all_pixels = dark_pixels + mid_pixels + bright_pixels
+    random.shuffle(all_pixels)
+
+    # Fill image using for loop
+    image = np.zeros((height, width), dtype=np.uint8)
+    idx = 0
+    for i in range(height):
+        for j in range(width):
+            image[i][j] = all_pixels[idx]
+            idx += 1
+    img=image
+    img2=cv2.imread('fig089a.jpg',0)
+    img3=cv2.imread('fig089a.png',0)
     # ...
 
     # 1. Frequency map
@@ -167,7 +220,7 @@ def main():
     calculate_compression_stats(img, huffman_codes, freq_map)
 
     # 7. Save decompressed image
-    cv2.imwrite('reconstructed.png', decompressed_img)
+    cv2.imwrite('reconstructedraw.png', decompressed_img)
     print("Image compression and decompression completed successfully.")
 
 # -------------------------------
