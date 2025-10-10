@@ -169,7 +169,7 @@ def calculate_compression_stats(original_img, huffman_codes, freq_map):
 def main():
     # ... (code to load image) ...
     # Load grayscale image (CHANGE PATH)
-    img = cv2.imread('/content/Picture2.png', 0)
+    img = cv2.imread('/content/Fig0809(a).tif', 0)
     # ...
 
     # 1. Frequency map
