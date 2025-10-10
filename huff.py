@@ -88,32 +88,7 @@ def decompress_image(compressed_img, inverse_huffman_codes):
                 raise ValueError(f"Invalid code '{code}' at ({i},{j})")
     return decompressed
 
-# -------------------------------
-# Calculate Compression Statistics
-def calculate_compression_stats(original_img, compressed_img, huffman_codes):
-    h, w = original_img.shape
-    total_pixels = h * w
 
-    # Original image: 8 bits per pixel
-    original_size_bits = total_pixels * 8
-
-    # Compressed image: variable bits per pixel (Huffman)
-    compressed_size_bits = 0
-    for i in range(h):
-        for j in range(w):
-            pixel = original_img[i, j]
-            compressed_size_bits += len(huffman_codes[pixel])
-
-    compression_ratio = compressed_size_bits / original_size_bits
-
-    print("----- Compression Stats -----")
-    print(f"Original size   : {original_size_bits} bits ({original_size_bits // 8} bytes)")
-    print(f"Compressed size : {compressed_size_bits} bits ({compressed_size_bits // 8} bytes)")
-    print(f"Compression ratio: {compression_ratio:.4f} ({compression_ratio*100:.2f}%)")
-    print("-----------------------------")
-
-    return original_size_bits, compressed_size_bits, compression_ratio
-# -------------------------------
 # Calculate Compression Statistics
 def calculate_compression_stats(original_img, huffman_codes, freq_map):
     h, w = original_img.shape
