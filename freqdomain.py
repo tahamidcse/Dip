@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
+# noisy high low contrast
 def create_circular_mask(shape, radius):
     rows, cols = shape
     center_row, center_col = rows // 2, cols // 2
