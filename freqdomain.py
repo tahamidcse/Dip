@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-# noisy high low contrast
+
 def create_circular_mask(shape, radius):
     rows, cols = shape
     center_row, center_col = rows // 2, cols // 2
@@ -9,6 +9,16 @@ def create_circular_mask(shape, radius):
     distance = (X - center_col)**2 + (Y - center_row)**2
     mask = np.zeros((rows, cols), dtype=np.uint8)
     mask[distance <= radius**2] = 1
+    return mask
+
+def create_band_pass_mask(shape, inner_radius, outer_radius):
+    rows, cols = shape
+    center_row, center_col = rows // 2, cols // 2
+    Y, X = np.ogrid[:rows, :cols]
+    distance = (X - center_col)**2 + (Y - center_row)**2
+
+    mask = np.zeros((rows, cols), dtype=np.uint8)
+    mask[(distance >= inner_radius**2) & (distance <= outer_radius**2)] = 1
     return mask
 
 def apply_filter(img, mask):
@@ -30,39 +40,45 @@ def main():
 
     h, w = img.shape
 
-    # Define radius
-    radius = 30
+    # Define radii
+    low_radius = 30
+    high_radius = 60
 
-    # Create low-pass mask (binary)
-    lp_mask = create_circular_mask((h, w), radius)
+    # Create masks
+    lp_mask = create_circular_mask((h, w), low_radius)
+    hp_mask = 255 - lp_mask  # Inverse (binary)
+    bp_mask = create_band_pass_mask((h, w), low_radius, high_radius)
 
-    # Create high-pass mask as inverse of low-pass
-    hp_mask = 255 - lp_mask
-
-    # Apply both filters
+    # Apply filters
     low_pass_img = apply_filter(img, lp_mask)
     high_pass_img = apply_filter(img, hp_mask)
-
+    band_pass_img = apply_filter(img, bp_mask)*255
+    
     # Display results
-    plt.figure(figsize=(15, 6))
+    plt.figure(figsize=(20, 6))
 
-    plt.subplot(1, 3, 1)
+    plt.subplot(1, 4, 1)
     plt.imshow(img, cmap='gray')
     plt.title("Original Image")
     plt.axis('off')
 
-    plt.subplot(1, 3, 2)
+    plt.subplot(1, 4, 2)
     plt.imshow(low_pass_img, cmap='gray')
-    plt.title(f"Low-Pass Filtered (r={radius})")
+    plt.title(f"Low-Pass (r<={low_radius})")
     plt.axis('off')
 
-    plt.subplot(1, 3, 3)
+    plt.subplot(1, 4, 3)
     plt.imshow(high_pass_img, cmap='gray')
-    plt.title(f"High-Pass Filtered (r={radius})")
+    plt.title(f"High-Pass (r>{low_radius})")
+    plt.axis('off')
+
+    plt.subplot(1, 4, 4)
+    plt.imshow(band_pass_img, cmap='gray')
+    plt.title(f"Band-Pass ({low_radius}<r<={high_radius})")
     plt.axis('off')
 
     plt.tight_layout()
     plt.show()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
