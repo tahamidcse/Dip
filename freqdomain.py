@@ -46,13 +46,13 @@ def main():
 
     # Create masks
     lp_mask = create_circular_mask((h, w), low_radius)
-    hp_mask = 255 - lp_mask  # Inverse (binary)
+    hp_mask = 1 - lp_mask  # Inverse (binary)
     bp_mask = create_band_pass_mask((h, w), low_radius, high_radius)
 
     # Apply filters
     low_pass_img = apply_filter(img, lp_mask)
     high_pass_img = apply_filter(img, hp_mask)
-    band_pass_img = apply_filter(img, bp_mask)*255
+    band_pass_img = apply_filter(img, bp_mask)
     
     # Display results
     plt.figure(figsize=(20, 6))
