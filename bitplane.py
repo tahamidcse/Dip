@@ -4,14 +4,7 @@
 #--- each representing a specific bit position of 
 #--- the pixel values.
 #----------------------------------------------------
-#--- Sangeeta Biswas, Ph.D.
-#--- Associate Professor
-#--- Department of Computer Science and Engineering
-#--- University of Rajshahi
-#--- Rajshahi-6205, Bangladesh
-#----------------------------------------------------
-# 02.08.2025
-#----------------------------------------------------
+
 
 #--- Import necessary modules
 import cv2
