@@ -1,3 +1,4 @@
+apply cv2 trackbar for threshold parameters of segment like canny
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
