@@ -1,7 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-
+from skimage.exposure import match_histograms
 
 def prepare_histogram(img, color_channel):
 	#--- Prepare an array to hold the number of pixels
@@ -58,7 +58,7 @@ def main():
         
 
     # Apply histogram equalization
-    img=cv2.imread('Fig0309(a)(washed_out_aerial_image).tif',0)
+    img1=cv2.imread('lowcont.tif',0)
     
     
      
@@ -72,7 +72,7 @@ def main():
     glevel=[]
     
     mapping = np.zeros(L, dtype=np.uint8)
-    invmap={} 
+    
     for i in range(L):
         mini=float('inf')
         midx=0
