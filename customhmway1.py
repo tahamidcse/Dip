@@ -5,7 +5,7 @@ import numpy as np
 
 def prepare_histogram(img, color_channel):
 	#--- Prepare an array to hold the number of pixels
-	L=8
+	L=256
 	pixel_count = np.zeros((L,), dtype = np.uint)
 
 	#--- Count number of pixels
@@ -31,7 +31,7 @@ def prepare_histogram(img, color_channel):
 	return cdf,pdf
 def plot_histogram(pixel_count,color_channel):
 	#--- Prepare an array to hold the number of pixels
-	L=8
+	L=256
 	
 	
 
@@ -51,28 +51,19 @@ def plot_histogram(pixel_count,color_channel):
 
 	
 	
-def createmat(arr):
-    img1=[]
-    
-    for glev,freq in enumerate(arr):
-        img1.append(np.full(freq,glev))
-    img=np.concatenate(img1)  
-    return img.reshape(8,8)
+
 def main():
    
         
         
 
     # Apply histogram equalization
-    #img=cv2.imread('Fig0309(a)(washed_out_aerial_image).tif',0)
+    img=cv2.imread('Fig0309(a)(washed_out_aerial_image).tif',0)
     
-    arr1=[8,10,10,2,12,16,4,2]
-    arr2=[0,0,0,0,20,20,16,8]
-    img1=createmat(arr1)
-    img2=createmat(arr2)
+    
      
-    spec=img2
-    L=8
+    spec=cv2.imread('light.tif',0)
+    L=256
  
     cdfg,pdfg=prepare_histogram(img1,'gray')
     cdfs,pdfs=prepare_histogram(spec,'gray')
@@ -85,7 +76,7 @@ def main():
     for i in range(L):
         mini=float('inf')
         midx=0
-        arr=[]
+        
 
         for j in range(L):
             diff=np.abs(cdfg[i]-cdfs[j])
@@ -93,15 +84,8 @@ def main():
                mini=diff
                midx=j
         mapping[i] = midx
-        #if midx not in invmap:
-           #invmap[midx] = []
-        #invmap[midx].append(i)
-    #pdf_custom2=[] 
-    for i in invmap:
-        res=0
-        for j in invmap[i]:
-            res+=pdfg[j]
-        pdf_custom2.append((i,res)) 
+      
+    
     #matched_custom = mapping[img1]
     h,w=img1.shape
     mimg=np.zeros_like(img1)
@@ -110,20 +94,19 @@ def main():
             mimg[i][j]=mapping[img1[i][j]]
 
     # --- Built-in Histogram Matching using skimage ---
-    #matched_builtin = match_histograms(img1, spec, channel_axis=None)
+    matched_builtin = match_histograms(img1, spec, channel_axis=None)
 
     # --- Histograms ---
     _, pdf_original = prepare_histogram(img1,'original')
     _, pdf_custom = prepare_histogram(mimg.astype(np.uint8),'custom matched')
-    #_, pdf_builtin = prepare_histogram(matched_builtin.astype(np.uint8),'scikit matched')
+    _, pdf_builtin = prepare_histogram(matched_builtin.astype(np.uint8),'scikit matched')
 
     # --- Plot Histograms ---
     plot_histogram(pdf_original, 'Original Image Histogram')
     plot_histogram(pdf_custom,'Custom Matched Histogram')
-    print(mapping)
-    print(pdf_custom2)
+    
 
-    #plot_histogram(pdf_builtin, 'Built-in Matched Histogram')
+    plot_histogram(pdf_builtin, 'Built-in Matched Histogram')
     
         
             
