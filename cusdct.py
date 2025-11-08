@@ -2,148 +2,95 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ----------------------------------------
-# 1D DCT (Type-II)
-# ----------------------------------------
-def DCT_1D(x, N):
-    X = np.zeros(N)
+# --- Manual 1D DCT and IDCT ---
+def _DCT_1D(x):
+    N = len(x)
+    result = np.zeros(N, dtype=np.float64)
     for k in range(N):
+        alpha = np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
         for n in range(N):
-            X[k] += x[n] * np.cos(np.pi * (n + 0.5) * k / N)
-    return X
+            result[k] += x[n] * np.cos(np.pi * (2*n + 1) * k / (2*N))
+        result[k] *= alpha
+    return result
 
-# ----------------------------------------
-# 1D Inverse DCT (Type-III)
-# ----------------------------------------
-def IDCT_1D(X, N):
-    x = np.zeros(N)
+def _IDCT_1D(X):
+    N = len(X)
+    result = np.zeros(N, dtype=np.float64)
     for n in range(N):
-        x[n] = X[0] / 2
-        for k in range(1, N):
-            x[n] += X[k] * np.cos(np.pi * (n + 0.5) * k / N)
-    x *= 2 / N
-    return x
+        for k in range(N):
+            alpha = np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
+            result[n] += alpha * X[k] * np.cos(np.pi * (2*n + 1) * k / (2*N))
+    return result
 
-# ----------------------------------------
-# 2D DCT
-# ----------------------------------------
-def DCT_2D(img):
+
+# --- 2D DCT and IDCT using row- and column-wise 1D DCT ---
+def DCT2D(img):
     M, N = img.shape
-    temp = np.zeros((M, N))
-    result = np.zeros((M, N))
+    temp = np.zeros((M, N), dtype=np.float64)
+    result = np.zeros((M, N), dtype=np.float64)
 
-    # DCT on rows
+    # Apply 1D DCT to rows
     for i in range(M):
-        temp[i, :] = DCT_1D(img[i, :], N)
+        temp[i, :] = _DCT_1D(img[i, :])
 
-    # DCT on columns
+    # Apply 1D DCT to columns
     for j in range(N):
-        result[:, j] = DCT_1D(temp[:, j], M)
+        result[:, j] = _DCT_1D(temp[:, j])
 
     return result
 
-# ----------------------------------------
-# 2D IDCT
-# ----------------------------------------
-def IDCT_2D(dct_img):
-    M, N = dct_img.shape
-    temp = np.zeros((M, N))
-    result = np.zeros((M, N))
+def IDCT2D(dct):
+    M, N = dct.shape
+    temp = np.zeros((M, N), dtype=np.float64)
+    result = np.zeros((M, N), dtype=np.float64)
 
-    # IDCT on columns
+    # Apply 1D IDCT to columns
     for j in range(N):
-        temp[:, j] = IDCT_1D(dct_img[:, j], M)
+        temp[:, j] = _IDCT_1D(dct[:, j])
 
-    # IDCT on rows
+    # Apply 1D IDCT to rows
     for i in range(M):
-        result[i, :] = IDCT_1D(temp[i, :], N)
+        result[i, :] = _IDCT_1D(temp[i, :])
 
     return result
 
-# ----------------------------------------
-# Custom DCT shift (centerize low frequencies)
-# ----------------------------------------
-def dctshift(dct_img):
-    """Shift DCT quadrants (similar to np.fft.fftshift)."""
-    M, N = dct_img.shape
-    M2, N2 = M // 2, N // 2
-    shifted = np.zeros_like(dct_img)
 
-    # swap quadrants
-    shifted[:M2, :N2] = dct_img[M2:, N2:]
-    shifted[M2:, N2:] = dct_img[:M2, :N2]
-    shifted[:M2, N2:] = dct_img[M2:, :N2]
-    shifted[M2:, :N2] = dct_img[:M2, N2:]
-    return shifted
+# --- Load grayscale image ---
+img = cv2.imread("/content/dft.jpeg", cv2.IMREAD_GRAYSCALE)
+img = cv2.resize(img, (32, 32)).astype(np.float64)
 
-# ----------------------------------------
-# Load grayscale image
-# ----------------------------------------
-img_path = 'dft.jpeg'
-img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-A = cv2.resize(img, (32, 32))
+# --- Manual 2D DCT and IDCT ---
+manual_dct = DCT2D(img)
+manual_idct = IDCT2D(manual_dct)
 
-if A is None:
-    raise FileNotFoundError(f"Image not found at {img_path}")
+# --- OpenCV built-in DCT for comparison ---
+opencv_dct = cv2.dct(img)
+opencv_idct = cv2.idct(opencv_dct)
 
-A = A.astype(np.float32) / 255.0
+# --- Difference between manual and OpenCV DCT ---
+diff = np.abs(manual_dct - opencv_dct)
 
-# ----------------------------------------
-# Apply custom 2D DCT & IDCT
-# ----------------------------------------
-dct_custom = DCT_2D(A)
-dct_centered = np.fft.fftshift(dct_custom)  # Centerize DCT coefficients
-idct_custom = IDCT_2D(dct_custom)
+# --- Visualization ---
+plt.figure(figsize=(12, 10))
 
-# ----------------------------------------
-# Apply OpenCV DCT & IDCT
-# ----------------------------------------
-dct_cv2 = cv2.dct(A)
-dctcv_centered=np.fft.fftshift(dct_cv2)  
-idct_cv2 = cv2.idct(dct_cv2)
+plt.subplot(3, 2, 1)
+plt.imshow(img, cmap='gray')
+plt.title("Original Image (float64)")
 
-# ----------------------------------------
-# Compute errors
-# ----------------------------------------
-dct_error = np.abs(dct_custom - dct_cv2).mean()
-idct_error = np.abs(idct_custom - idct_cv2).mean()
-recon_error = np.abs(A - idct_custom).mean()
+plt.subplot(3, 2, 2)
+plt.imshow(np.clip(manual_idct, 0, 255).astype(np.uint8), cmap='gray')
+plt.title("Reconstructed (Manual IDCT)")
 
-print(f"Mean |Custom DCT - cv2.DCT| error = {dct_error:.6e}")
-print(f"Mean |Custom IDCT - cv2.IDCT| error = {idct_error:.6e}")
-print(f"Mean |Original - Custom IDCT| error = {recon_error:.6e}")
 
-# ----------------------------------------
-# Display comparison
-# ----------------------------------------
-plt.figure(figsize=(15, 8))
 
-plt.subplot(2, 3, 1)
-plt.imshow(A, cmap='gray')
-plt.title("Original Image")
+plt.subplot(3, 2, 3)
+plt.imshow(np.log1p(np.abs(opencv_dct)), cmap='hot')
+plt.title("OpenCV 2D DCT (log scale)")
+
+plt.subplot(3, 2, 4)
+plt.imshow(np.log1p(np.abs(manual_dct)), cmap='hot')
+plt.title("Manual 2D DCT (log scale)")
 plt.axis('off')
-
-plt.subplot(2, 3, 2)
-plt.imshow(np.log1p(np.abs(dctcv_centered)), cmap='hot')
-plt.title("dctcv2_centered")
-plt.axis('off')
-
-plt.subplot(2, 3, 3)
-plt.imshow(np.log1p(np.abs(dct_centered)), cmap='hot')
-plt.title("DCT custom(Centered / Shifted)")
-plt.axis('off')
-
-plt.subplot(2, 3, 4)
-plt.imshow(np.clip(idct_custom, 0, 1), cmap='gray')
-plt.title("Custom IDCT Reconstruction")
-plt.axis('off')
-
-plt.subplot(2, 3, 5)
-plt.imshow(np.clip(idct_cv2, 0, 1), cmap='gray')
-plt.title("OpenCV IDCT Reconstruction")
-plt.axis('off')
-
-
 
 plt.tight_layout()
 plt.show()
