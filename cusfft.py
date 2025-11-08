@@ -1,58 +1,73 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+
+# -----------------------------
+# 2D FFT Shift (custom)
+# -----------------------------
 def fftshift_2d(x):
     M, N = x.shape
     m_mid = M // 2
     n_mid = N // 2
-    # Rearrange 4 quadrants
     return np.block([
         [x[m_mid:, n_mid:], x[m_mid:, :n_mid]],
         [x[:m_mid, n_mid:], x[:m_mid, :n_mid]]
     ])
 
-# --- Manual 1D DFT and IDFT ---
-def _DFT(x,N):
+# -----------------------------
+# Memoized 1D FFT (DP approach)
+# -----------------------------
+fft_cache = {}
+
+def _DFT(x):
     N = len(x)
-    # Bit-reversal permutation
-    bits = int(np.log2(N))
-    indices = np.arange(N)
-    reversed_indices = np.array([int(f'{i:0{bits}b}'[::-1], 2) for i in indices])
-    x = np.array(x, dtype=complex)[reversed_indices]
+    key = tuple(np.round(x, 8))  # hashable key
 
-    # Iterative butterfly computation
-    half_size = 1
-    while half_size < N:
-        step = half_size * 2
-        exp_factor = np.exp(-2j * np.pi * np.arange(half_size) / step)
-        for k in range(0, N, step):
-            for n in range(half_size):
-                even = x[k + n]
-                odd = exp_factor[n] * x[k + n + half_size]
-                x[k + n] = even + odd
-                x[k + n + half_size] = even - odd
-        half_size = step
-    return x
+    if key in fft_cache:
+        return fft_cache[key]
 
-def _IDFT(X, N):
+    if N <= 1:
+        fft_cache[key] = x
+        return x
+
+    # Divide
+    even = _DFT(x[::2])
+    odd  = _DFT(x[1::2])
+
+    # Twiddle factors
+    factor = np.exp(-2j * np.pi * np.arange(N) / N)
+
+    X = np.zeros(N, dtype=complex)
+    half = N // 2
+    for k in range(half):
+        X[k] = even[k] + factor[k] * odd[k]
+        X[k + half] = even[k] - factor[k] * odd[k]
+
+    fft_cache[key] = X
+    return X
+
+# -----------------------------
+# Inverse FFT using DP (IFFT)
+# -----------------------------
+def _IDFT(X):
     N = len(X)
-    X_conj = np.conjugate(X)
-    x_time = _DFT(X_conj,len(X_conj))
-    return np.conjugate(x_time) / N
+    if N <= 1:
+        return X
+    return np.conjugate(_DFT(np.conjugate(X))) / N
 
-# --- 2D DFT and IDFT using row- and column-wise 1D DFT ---
+# -----------------------------
+# 2D FFT / IFFT via row & column transform
+# -----------------------------
 def DFT2D(img):
     M, N = img.shape
     temp = np.zeros((M, N), dtype=np.complex128)
     result = np.zeros((M, N), dtype=np.complex128)
 
-    # Apply 1D DFT to rows
     for i in range(M):
-        temp[i, :] = _DFT(img[i, :], N)
-    
-    # Apply 1D DFT to columns
+        temp[i, :] = _DFT(img[i, :])
+
     for j in range(N):
-        result[:, j] = _DFT(temp[:, j], M)
+        result[:, j] = _DFT(temp[:, j])
 
     return result
 
@@ -61,57 +76,54 @@ def IDFT2D(dft2d):
     temp = np.zeros((M, N), dtype=np.complex128)
     result = np.zeros((M, N), dtype=np.complex128)
 
-    # Apply 1D IDFT to columns
     for j in range(N):
-        temp[:, j] = _IDFT(dft2d[:, j], M)
-    
-    # Apply 1D IDFT to rows
+        temp[:, j] = _IDFT(dft2d[:, j])
     for i in range(M):
-        result[i, :] = _IDFT(temp[i, :], N)
+        result[i, :] = _IDFT(temp[i, :])
 
     return np.real(result)
 
-
-# --- Load grayscale image using OpenCV ---
+# -----------------------------
+# Load and process image
+# -----------------------------
 img = cv2.imread("/content/dft.jpeg", cv2.IMREAD_GRAYSCALE)
 img = cv2.resize(img, (32, 32)).astype(np.float32)
 
-# --- Manual 2D DFT ---
 manual_dft = DFT2D(img)
-manual_idft=IDFT2D(manual_dft)
-manual_magnitude =np.log1p( np.abs(fftshift_2d(manual_dft)))
-manual_phase = np.angle(manual_dft)
-
+manual_magnitude = np.log1p(np.abs(fftshift_2d(manual_dft)))
 manual_reconstructed = IDFT2D(manual_dft)
-dft=np.fft.fft2(img)
+
+# Reference using NumPy
+dft = np.fft.fft2(img)
 shifted_dft = np.fft.fftshift(dft)
 magnitude = np.log1p(np.abs(shifted_dft))
-diff=np.abs(manual_magnitude-magnitude)
 
+diff = np.abs(manual_magnitude - magnitude)
 
-# --- Visualization ---
+# -----------------------------
+# Visualization
+# -----------------------------
 plt.figure(figsize=(12, 10))
 
 plt.subplot(3,2,1)
 plt.imshow(img, cmap='gray')
-plt.title("Original Image in float32")
+plt.title("Original Image")
 
 plt.subplot(3,2,2)
-plt.imshow(np.clip(manual_idft, 0, 255).astype(np.uint8), cmap='gray')
-plt.title("Reconstructed Image (IDFT)")
-
+plt.imshow(manual_magnitude, cmap='hot')
+plt.title("Manual FFT (DP Memoized) Magnitude")
 
 plt.subplot(3,2,3)
 plt.imshow(magnitude, cmap='hot')
-plt.title("OpenCV DFT Magnitude (log scale)")
-
-
+plt.title("NumPy FFT Magnitude")
 
 plt.subplot(3,2,4)
-plt.imshow(manual_magnitude, cmap='hot')
-plt.title("Manual DFT Magnitude (log scale)")
-plt.axis('off')
+plt.imshow(np.clip(manual_reconstructed, 0, 255).astype(np.uint8), cmap='gray')
+plt.title("Reconstructed Image (IDFT)")
 
+plt.subplot(3,2,5)
+plt.imshow(diff, cmap='gray')
+plt.title("Difference between Manual & NumPy FFT")
 
 plt.tight_layout()
 plt.show()
