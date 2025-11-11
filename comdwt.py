@@ -18,21 +18,12 @@ class GlobalDWTCompressor:
         # Convert to float32 for DWT
         image_float = image.astype(np.float32)
         
-        # Apply DWT to each channel if color image
-        if len(image.shape) == 3:
-            coeffs_list = []
-            for i in range(3):
-                channel_coeffs = pywt.wavedec2(image_float[:, :, i], self.wavelet, level=3)
-                coeffs_list.append(channel_coeffs)
-            
-            # Flatten the coefficients for easier handling
-            flattened_coeffs, coeff_slices = self._flatten_coeffs(coeffs_list)
-            self.coeff_slices = coeff_slices
-        else:
-            # Grayscale image
-            coeffs = pywt.wavedec2(image_float, self.wavelet, level=3)
-            flattened_coeffs, coeff_slices = self._flatten_coeffs([coeffs])
-            self.coeff_slices = coeff_slices
+      
+        
+          
+        coeffs = pywt.wavedec2(image_float, self.wavelet, level=3)
+        flattened_coeffs, coeff_slices = self._flatten_coeffs([coeffs])
+        self.coeff_slices = coeff_slices
             
         self.dwt_size = flattened_coeffs.shape
         return flattened_coeffs
@@ -40,16 +31,9 @@ class GlobalDWTCompressor:
     def inverse_transform(self, dwt_coeffs):
         """Apply inverse DWT transform"""
         # Reconstruct coefficients structure
-        if len(self.coeff_slices) == 3:
-            # Color image
-            reconstructed = np.zeros((dwt_coeffs.shape[0], dwt_coeffs.shape[1], 3), dtype=np.float32)
-            for i in range(3):
-                coeffs_reconstructed = self._reconstruct_coeffs(dwt_coeffs[:, :, i], self.coeff_slices[i])
-                reconstructed[:, :, i] = pywt.waverec2(coeffs_reconstructed, self.wavelet)
-        else:
-            # Grayscale image
-            coeffs_reconstructed = self._reconstruct_coeffs(dwt_coeffs, self.coeff_slices[0])
-            reconstructed = pywt.waverec2(coeffs_reconstructed, self.wavelet)
+        
+        coeffs_reconstructed = self._reconstruct_coeffs(dwt_coeffs, self.coeff_slices[0])
+        reconstructed = pywt.waverec2(coeffs_reconstructed, self.wavelet)
             
         # Clip and convert back to uint8
         reconstructed = np.clip(reconstructed, 0, 255).astype(np.uint8)
@@ -92,11 +76,7 @@ class GlobalDWTCompressor:
             flattened_channels.append(flattened[:row_pos+rows, :max_col_used])
             coeff_slices.append(current_slice)
         
-        # Stack channels for color images
-        if len(flattened_channels) == 3:
-            flattened_array = np.stack(flattened_channels, axis=-1)
-        else:
-            flattened_array = flattened_channels[0]
+        flattened_array = flattened_channels[0]
             
         return flattened_array, coeff_slices
     
