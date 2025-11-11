@@ -15,13 +15,8 @@ class GlobalDCTCompressor:
         # Convert to float32 for DCT
         image_float = image.astype(np.float32)
         
-        # Apply DCT to each channel if color image
-        if len(image.shape) == 3:
-            dct_coeffs = np.zeros_like(image_float)
-            for i in range(3):
-                dct_coeffs[:, :, i] = cv2.dct(image_float[:, :, i])
-        else:
-            dct_coeffs = cv2.dct(image_float)
+        
+        dct_coeffs = cv2.dct(image_float)
             
         self.dct_size = dct_coeffs.shape
         return dct_coeffs
@@ -29,12 +24,8 @@ class GlobalDCTCompressor:
     def inverse_transform(self, dct_coeffs):
         """Apply inverse DCT transform"""
         # Apply inverse DCT to each channel
-        if len(dct_coeffs.shape) == 3:
-            reconstructed = np.zeros_like(dct_coeffs)
-            for i in range(3):
-                reconstructed[:, :, i] = cv2.idct(dct_coeffs[:, :, i])
-        else:
-            reconstructed = cv2.idct(dct_coeffs)
+    
+        reconstructed = cv2.idct(dct_coeffs)
             
         # Convert back to uint8
         reconstructed = np.clip(reconstructed, 0, 255).astype(np.uint8)
