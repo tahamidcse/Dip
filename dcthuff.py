@@ -161,11 +161,9 @@ def do_dwt(img, wave="haar", qstep=1.0, keep_ratio=1.0):
     y = y[:img.shape[0], :img.shape[1]]
     return bits, np.clip(y, 0, 255).astype(np.uint8)
 '''
-
 def main():
     IMG_PATH = "dwtdct.jpg"
     DCT_QSTEP = 10.0
-    KEEP_RATIOS = [1.0, 0.1, 0.05, 0.01, 0.005]
     
     img = cv2.imread(IMG_PATH, cv2.IMREAD_GRAYSCALE)
     if img is None:
@@ -175,56 +173,59 @@ def main():
     orig_bits = H * W * 8
     results = []
 
-    for keep_ratio in KEEP_RATIOS:
-        print(f"\n=== Testing keep_ratio: {keep_ratio} ===")
+    print("\n=== Testing Compression Methods ===")
 
-        # Huffman (only for keep_ratio=1.0 since it doesn't use thresholding)
-        if keep_ratio == 1.0:
-            hb, hrecon = do_huffman(img)
-            ph = pct_smaller(orig_bits, hb)
-            results.append(('Huffman', keep_ratio, hb, ph, hrecon))
+    # Huffman compression
+    hb, hrecon = do_huffman(img)
+    ph = pct_smaller(orig_bits, hb)
+    results.append(('Huffman', hb, ph, hrecon))
 
-        # DCT with RLE + Huffman
-        db, drecon = do_dct(img, DCT_QSTEP, keep_ratio)
-        pdct = pct_smaller(orig_bits, db)
-        results.append(('DCT', keep_ratio, db, pdct, drecon))
+    # DCT with RLE + Huffman compression
+    db, drecon = do_dct(img, DCT_QSTEP)
+    pdct = pct_smaller(orig_bits, db)
+    results.append(('DCT', db, pdct, drecon))
 
     # Print results
-    print("\n" + "=" * 60)
-    print("COMPARISON RESULTS")
-    print("=" * 60)
-    print(f"{'Method':<10} {'Keep Ratio':<12} {'Bits':<12} {'Compression %':<15}")
-    print("-" * 60)
-    for method, keep_ratio, bits, comp_pct, _ in results:
-        print(f"{method:<10} {keep_ratio:<12} {bits:<12} {comp_pct:<15.1f}")
+    print("\n" + "=" * 50)
+    print("COMPRESSION RESULTS")
+    print("=" * 50)
+    print(f"{'Method':<10} {'Bits':<12} {'Compression %':<15}")
+    print("-" * 50)
+    for method, bits, comp_pct, _ in results:
+        print(f"{method:<10} {bits:<12} {comp_pct:<15.1f}")
+
+    # Calculate bits per pixel
+    total_pixels = H * W
+    print("\n" + "=" * 50)
+    print("BITS PER PIXEL (BPP) ANALYSIS")
+    print("=" * 50)
+    print(f"Original: {8:.2f} bpp")
+    for method, bits, comp_pct, _ in results:
+        bpp = bits / total_pixels
+        print(f"{method}: {bpp:.2f} bpp")
 
     # Plot results
-    num_methods = 2  # Only Huffman and DCT now
-    cols = len(KEEP_RATIOS) + 1
-    rows = num_methods
-
-    plt.figure(figsize=(4 * cols, 4 * rows))
+    plt.figure(figsize=(15, 5))
     
     # Original image
-    plt.subplot(rows, cols, 1)
-    plt.title("Original")
+    plt.subplot(1, 3, 1)
+    plt.title("Original Image")
     plt.imshow(img, cmap='gray')
     plt.axis('off')
 
-    plot_idx = 2
-    for method in ['Huffman', 'DCT']:
-        for keep_ratio in KEEP_RATIOS:
-            result = next((r for r in results if r[0] == method and r[1] == keep_ratio), None)
-            if result and result[4] is not None:
-                method_name, kr, bits, comp_pct, recon_img = result
-                plt.subplot(rows, cols, plot_idx)
-                if method == 'Huffman':
-                    plt.title(f"Huffman\n{comp_pct:.1f}% smaller")
-                else:
-                    plt.title(f"DCT (keep={kr})\n{comp_pct:.1f}% smaller")
-                plt.imshow(recon_img, cmap='gray')
-                plt.axis('off')
-            plot_idx += 1
+    # Huffman compressed
+    plt.subplot(1, 3, 2)
+    h_method, h_bits, h_comp, h_recon = results[0]
+    plt.title(f"Huffman Compression\n{h_comp:.1f}% smaller\n{h_bits} bits")
+    plt.imshow(h_recon, cmap='gray')
+    plt.axis('off')
+
+    # DCT compressed
+    plt.subplot(1, 3, 3)
+    d_method, d_bits, d_comp, d_recon = results[1]
+    plt.title(f"DCT + RLE + Huffman\n{d_comp:.1f}% smaller\n{d_bits} bits")
+    plt.imshow(d_recon, cmap='gray')
+    plt.axis('off')
 
     plt.tight_layout()
     plt.show()
