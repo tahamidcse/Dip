@@ -2,21 +2,7 @@ import cv2, numpy as np, heapq
 from collections import Counter
 import matplotlib.pyplot as plt
 
-# ====================== SETTINGS ===========================================
-IMG_PATH	= "dwtdct.jpg"
-DCT_QSTEP	= 10.0 
-DWT_QSTEP	= 1.0  
-WAVELET		= "haar"
-# Add thresholding settings
-KEEP_RATIOS = [1.0, 0.1, 0.05, 0.01, 0.005]  # 1.0 means no thresholding
-# ===========================================================================
 
-# Optional PyWavelets for DWT
-try:
-	import pywt
-	HAS_PYWT = True
-except ImportError:
-	HAS_PYWT = False
 
 def huff_bits(arr: np.ndarray) -> int:
 	flat = arr.ravel().tolist()
@@ -206,6 +192,12 @@ def do_dwt(img, wave=WAVELET, qstep=DWT_QSTEP, keep_ratio=1.0):
 	return bits, np.clip(y, 0, 255).astype(np.uint8)
 
 def main():
+	IMG_PATH	= "dwtdct.jpg"
+	DCT_QSTEP	= 10.0 
+    DWT_QSTEP	= 1.0  
+    WAVELET		= "haar"
+    # Add thresholding settings
+    KEEP_RATIOS = [1.0, 0.1, 0.05, 0.01, 0.005] 
 	img = cv2.imread(IMG_PATH, cv2.IMREAD_GRAYSCALE)
 	if img is None:
 		raise ValueError(f"Could not read image: {IMG_PATH}")
