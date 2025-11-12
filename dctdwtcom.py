@@ -21,6 +21,23 @@ def run_length_encode(arr):
             count = 1
     encoded.append((current, count))
     return encoded
+def zigzag_scan(matrix):
+    """Zigzag scan of a 2D matrix"""
+    rows, cols = matrix.shape
+    result = []
+    for s in range(rows + cols - 1):
+        if s % 2 == 0:
+            for i in range(s, -1, -1):
+                j = s - i
+                if i < rows and j < cols:
+                    result.append(matrix[i, j])
+        else:
+            for j in range(s, -1, -1):
+                i = s - j
+                if i < rows and j < cols:
+                    result.append(matrix[i, j])
+    return np.array(result)
+
 
 def huff_bits(arr: np.ndarray) -> int:
     flat = arr.ravel().tolist()
@@ -55,23 +72,6 @@ def huff_bits(arr: np.ndarray) -> int:
 def pct_smaller(orig_bits, comp_bits):
     return max(0.0, 100.0 * (1.0 - comp_bits / max(1, orig_bits)))
 
-
-def zigzag_scan(matrix):
-    """Zigzag scan of a 2D matrix"""
-    rows, cols = matrix.shape
-    result = []
-    for s in range(rows + cols - 1):
-        if s % 2 == 0:
-            for i in range(s, -1, -1):
-                j = s - i
-                if i < rows and j < cols:
-                    result.append(matrix[i, j])
-        else:
-            for j in range(s, -1, -1):
-                i = s - j
-                if i < rows and j < cols:
-                    result.append(matrix[i, j])
-    return np.array(result)
 
 
 
