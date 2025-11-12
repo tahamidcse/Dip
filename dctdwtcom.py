@@ -3,7 +3,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 
 # ====================== SETTINGS ===========================================
-IMG_PATH	= "/home/alamin/1.PART_IV/DIP/images/raw.png"
+IMG_PATH	= "dwtdct.jpg"
 DCT_QSTEP	= 10.0 
 DWT_QSTEP	= 1.0  
 WAVELET		= "haar"
