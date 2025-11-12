@@ -75,42 +75,7 @@ def pct_smaller(orig_bits, comp_bits):
 
 
 
-'''
-def apply_thresholding(coeffs, keep_ratio):
-    """Apply thresholding to DWT coefficients based on keep ratio"""
-    if keep_ratio >= 1.0:
-        return coeffs  # No thresholding
 
-    coeff_flat = []
-    coeff_flat.append(coeffs[0].ravel())
-    for detail_coeff in coeffs[1]:
-        coeff_flat.append(detail_coeff.ravel())
-    all_coeffs = np.concatenate(coeff_flat)
-
-    abs_coeffs = np.abs(all_coeffs)
-    sorted_indices = np.argsort(abs_coeffs)
-    thresh_idx = int(len(abs_coeffs) * (1 - keep_ratio))
-    threshold = abs_coeffs[sorted_indices[thresh_idx]] if thresh_idx > 0 else 0
-
-    start_idx = 0
-    new_cA = coeffs[0].copy()
-    new_details = []
-
-    cA_size = coeffs[0].size
-    cA_flat = all_coeffs[start_idx:start_idx + cA_size]
-    cA_flat[np.abs(cA_flat) < threshold] = 0
-    new_cA = cA_flat.reshape(coeffs[0].shape)
-    start_idx += cA_size
-
-    for i, detail_coeff in enumerate(coeffs[1]):
-        detail_size = detail_coeff.size
-        detail_flat = all_coeffs[start_idx:start_idx + detail_size]
-        detail_flat[np.abs(detail_flat) < threshold] = 0
-        new_details.append(detail_flat.reshape(detail_coeff.shape))
-        start_idx += detail_size
-
-    return (new_cA, tuple(new_details))
- '''
 
 # ====================== Compression Methods ===============================
 
@@ -135,32 +100,7 @@ def do_dct(img, qstep=10.0, keep_ratio=1.0):
     y = cv2.idct(Cq.astype(np.float32) * qstep) + 128.0
     return bits, np.clip(y, 0, 255).astype(np.uint8)
 
-'''
-def do_dwt(img, wave="haar", qstep=1.0, keep_ratio=1.0):
-    if not HAS_PYWT:
-        raise RuntimeError("PyWavelets not installed. pip install pywavelets")
-    x = img.astype(np.float32)
-    coeffs = pywt.dwt2(x, wave)
-    cA, (cH, cV, cD) = coeffs
 
-    cAq = np.rint(cA / qstep).astype(np.int32)
-    cHq = np.rint(cH / qstep).astype(np.int32)
-    cVq = np.rint(cV / qstep).astype(np.int32)
-    cDq = np.rint(cD / qstep).astype(np.int32)
-
-    coeffs_q = (cAq, (cHq, cVq, cDq))
-    if keep_ratio < 1.0:
-        coeffs_q = apply_thresholding(coeffs_q, keep_ratio)
-
-    cAq_t, (cHq_t, cVq_t, cDq_t) = coeffs_q
-    bits = huff_bits(np.concatenate([
-        cAq_t.ravel(), cHq_t.ravel(), cVq_t.ravel(), cDq_t.ravel()
-    ]))
-
-    y = pywt.waverec2((cAq_t * qstep, (cHq_t * qstep, cVq_t * qstep, cDq_t * qstep)), wave)
-    y = y[:img.shape[0], :img.shape[1]]
-    return bits, np.clip(y, 0, 255).astype(np.uint8)
-'''
 def main():
     IMG_PATH = "dwtdct.jpg"
     DCT_QSTEP = 10.0
