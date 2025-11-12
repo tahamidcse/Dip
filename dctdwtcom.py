@@ -2,11 +2,25 @@ import cv2, numpy as np, heapq
 from collections import Counter
 import matplotlib.pyplot as plt
 import pywt
-# Try to import PyWavelets
 
 
 
-# ====================== Utility Functions ===============================
+def run_length_encode(arr):
+    """Run-length encoding of an array"""
+    if len(arr) == 0:
+        return []
+    encoded = []
+    count = 1
+    current = arr[0]
+    for i in range(1, len(arr)):
+        if arr[i] == current:
+            count += 1
+        else:
+            encoded.append((current, count))
+            current = arr[i]
+            count = 1
+    encoded.append((current, count))
+    return encoded
 
 def huff_bits(arr: np.ndarray) -> int:
     flat = arr.ravel().tolist()
@@ -60,24 +74,8 @@ def zigzag_scan(matrix):
     return np.array(result)
 
 
-def run_length_encode(arr):
-    """Run-length encoding of an array"""
-    if len(arr) == 0:
-        return []
-    encoded = []
-    count = 1
-    current = arr[0]
-    for i in range(1, len(arr)):
-        if arr[i] == current:
-            count += 1
-        else:
-            encoded.append((current, count))
-            current = arr[i]
-            count = 1
-    encoded.append((current, count))
-    return encoded
 
-
+'''
 def apply_thresholding(coeffs, keep_ratio):
     """Apply thresholding to DWT coefficients based on keep ratio"""
     if keep_ratio >= 1.0:
@@ -112,7 +110,7 @@ def apply_thresholding(coeffs, keep_ratio):
         start_idx += detail_size
 
     return (new_cA, tuple(new_details))
-
+ '''
 
 # ====================== Compression Methods ===============================
 
@@ -137,7 +135,7 @@ def do_dct(img, qstep=10.0, keep_ratio=1.0):
     y = cv2.idct(Cq.astype(np.float32) * qstep) + 128.0
     return bits, np.clip(y, 0, 255).astype(np.uint8)
 
-
+'''
 def do_dwt(img, wave="haar", qstep=1.0, keep_ratio=1.0):
     if not HAS_PYWT:
         raise RuntimeError("PyWavelets not installed. pip install pywavelets")
@@ -162,18 +160,13 @@ def do_dwt(img, wave="haar", qstep=1.0, keep_ratio=1.0):
     y = pywt.waverec2((cAq_t * qstep, (cHq_t * qstep, cVq_t * qstep, cDq_t * qstep)), wave)
     y = y[:img.shape[0], :img.shape[1]]
     return bits, np.clip(y, 0, 255).astype(np.uint8)
-
-
-# ====================== MAIN PROGRAM =====================================
+'''
 
 def main():
-	
     IMG_PATH = "dwtdct.jpg"
     DCT_QSTEP = 10.0
-    DWT_QSTEP = 1.0
-    WAVELET = "haar"
     KEEP_RATIOS = [1.0, 0.1, 0.05, 0.01, 0.005]
-    HAS_PYWT = True
+    
     img = cv2.imread(IMG_PATH, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise ValueError(f"Could not read image: {IMG_PATH}")
@@ -185,22 +178,18 @@ def main():
     for keep_ratio in KEEP_RATIOS:
         print(f"\n=== Testing keep_ratio: {keep_ratio} ===")
 
+        # Huffman (only for keep_ratio=1.0 since it doesn't use thresholding)
         if keep_ratio == 1.0:
             hb, hrecon = do_huffman(img)
             ph = pct_smaller(orig_bits, hb)
             results.append(('Huffman', keep_ratio, hb, ph, hrecon))
 
+        # DCT with RLE + Huffman
         db, drecon = do_dct(img, DCT_QSTEP, keep_ratio)
         pdct = pct_smaller(orig_bits, db)
         results.append(('DCT', keep_ratio, db, pdct, drecon))
 
-        if HAS_PYWT:
-            wb, wrecon = do_dwt(img, WAVELET, DWT_QSTEP, keep_ratio)
-            pwdt = pct_smaller(orig_bits, wb)
-            results.append(('DWT', keep_ratio, wb, pwdt, wrecon))
-        else:
-            results.append(('DWT', keep_ratio, 0, 0, None))
-
+    # Print results
     print("\n" + "=" * 60)
     print("COMPARISON RESULTS")
     print("=" * 60)
@@ -209,29 +198,30 @@ def main():
     for method, keep_ratio, bits, comp_pct, _ in results:
         print(f"{method:<10} {keep_ratio:<12} {bits:<12} {comp_pct:<15.1f}")
 
-    num_methods = 3 if HAS_PYWT else 2
+    # Plot results
+    num_methods = 2  # Only Huffman and DCT now
     cols = len(KEEP_RATIOS) + 1
     rows = num_methods
 
     plt.figure(figsize=(4 * cols, 4 * rows))
+    
+    # Original image
     plt.subplot(rows, cols, 1)
     plt.title("Original")
     plt.imshow(img, cmap='gray')
     plt.axis('off')
 
     plot_idx = 2
-    for method in ['Huffman', 'DCT', 'DWT']:
-        if method == 'Huffman' and not any(r[0] == 'Huffman' for r in results):
-            continue
-        if method == 'DWT' and not HAS_PYWT:
-            continue
-
+    for method in ['Huffman', 'DCT']:
         for keep_ratio in KEEP_RATIOS:
             result = next((r for r in results if r[0] == method and r[1] == keep_ratio), None)
             if result and result[4] is not None:
                 method_name, kr, bits, comp_pct, recon_img = result
                 plt.subplot(rows, cols, plot_idx)
-                plt.title(f"{method} (keep={kr})\n{comp_pct:.1f}% smaller")
+                if method == 'Huffman':
+                    plt.title(f"Huffman\n{comp_pct:.1f}% smaller")
+                else:
+                    plt.title(f"DCT (keep={kr})\n{comp_pct:.1f}% smaller")
                 plt.imshow(recon_img, cmap='gray')
                 plt.axis('off')
             plot_idx += 1
