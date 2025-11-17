@@ -347,7 +347,7 @@ def main():
     """Main function demonstrating dynamic palette-based color reduction"""
     
     # Load an image
-    img_path = '/home/bibrity/CSE_Courses/CSE4161_DIP/Images/paddy_field1.jpeg'
+    img_path = 'rgb_palette_24bit.png'
     original_img = cv2.imread(img_path)
     
     # If image not found, create a sample image
