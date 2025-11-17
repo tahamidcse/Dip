@@ -2,6 +2,25 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from math import log2, ceil, floor
+from skimage.metrics import structural_similarity as ssim
+
+def calculate_ssim_opencv_skimage(original_path, compressed_path):
+    """
+    Calculate SSIM between original and compressed images using OpenCV and scikit-image
+    """
+    # Read images
+    original_gray = original_path
+    compressed_gray = compressed_path
+    
+    # Check if images are loaded properly
+  
+    # Convert to grayscale for SSIM calculation
+    
+    
+    # Calculate SSIM
+    ssim_index, ssim_map = ssim(original_gray, compressed_gray,multichannel=True, full=True)
+    
+    return ssim_index
 
 class DynamicPaletteColorReducer:
     """Class for dynamic palette-based color depth reduction"""
@@ -16,7 +35,7 @@ class DynamicPaletteColorReducer:
         self.levels_b = self.calculate_quantization_levels(self.b_bits)
         
         print(f"Bit allocation: R={self.r_bits}, G={self.g_bits}, B={self.b_bits} bits")
-        print(f"Color levels: R={len(self.levels_r)}, G={len(self.levels_g)}, B={len(self.levels_b)}")
+        print(f"Color levels: R={self.levels_r}, G={len(self.levels_g)}, B={self.levels_b}")
     
     def calculate_bit_allocation(self, total_bits):
         """
@@ -176,9 +195,59 @@ class DynamicPaletteColorReducer:
                     reconstructed[i, j] = palette[palette_idx]
         
         return reconstructed
+    def display_comparison(self,original, compressed, stats,title="Palette-based Compression"):
+        """Display original and compressed images"""
+        original_rgb = cv2.cvtColor(original, cv2.COLOR_BGR2RGB)
+        compressed_rgb = cv2.cvtColor(compressed, cv2.COLOR_BGR2RGB)
+        #
+        plt.figure(figsize=(16, 10))
+
+        plt.subplot(2, 4, 1)
+        plt.imshow(original_rgb)
+        plt.title(f'Original\n24-bit RGB\n{stats["original_size"]} bytes')
+        plt.axis('off')
+
+        plt.subplot(2, 4, 6)
+        plt.imshow(compressed_rgb)
+        plt.title(f'Compressed\n3-3-2 bit RGB\n{stats["compressed_size"]} bytes')
+        plt.axis('off')
+
+        plt.subplot(2, 4, 7)
+        diff = cv2.absdiff(original, compressed)
+        diff_rgb = cv2.cvtColor(diff, cv2.COLOR_BGR2RGB)
+        plt.imshow(diff_rgb)
+        plt.title(f'Difference\nMSE: {stats["mse"]:.2f}')
+        plt.axis('off')
+
+        plt.subplot(2, 4, 8)
+        plt.axis('off')
+        txt = (
+            f"Compression Statistics:\n\n"
+            f"Original: {stats['original_size']} bpp\n"
+            f"Compressed: {stats['compressed_size']} bpp\n"
+            f"Ratio: {stats['compression_ratio']:.1f}:1\n"
+            f"MSE: {stats['mse']:.2f}\n"
+            f"PSNR: {stats['psnr']:.2f} dB\n"
+            f"SSIM ={stats['ssimrgb']:.2f}"
+        )
+        plt.text(0.1, 0.5, txt, fontsize=12)
+
+        plt.tight_layout()
+        plt.show()
     
     def calculate_compression_stats(self, original_img, index_map, palette):
         """Calculate compression statistics"""
+        """Reconstruct image from palette indices"""
+        height, width = index_map.shape
+        reconstructed_img = np.zeros((height, width, 3), dtype=np.uint8)
+        
+        for i in range(height):
+            for j in range(width):
+                palette_idx = index_map[i, j]
+                if palette_idx in palette:
+                    # OpenCV uses BGR format
+                    reconstructed_img[i, j] = palette[palette_idx]
+        
         original_size = original_img.nbytes  # 24 bits per pixel
         
         # Compressed size: indices (8 bits per pixel) + palette storage
@@ -190,9 +259,9 @@ class DynamicPaletteColorReducer:
         compression_ratio = original_size / total_compressed_size
         bpp_original = 24  # bits per pixel
         bpp_compressed = (index_size * 8 + palette_size * 8) / (original_img.shape[0] * original_img.shape[1])
-        
-        total_colors = len(self.levels_r) * len(self.levels_g) * len(self.levels_b)
-        
+        mse = np.mean((original_img.astype(float) - reconstructed_img.astype(float)) ** 2)
+        psnr = 10 * np.log10(255**2 / mse) if mse > 0 else float('inf')
+        ssimrgb=calculate_ssim_opencv_skimage(original_img,reconstructed_img)
         return {
             'original_size': original_size,
             'compressed_size': total_compressed_size,
@@ -202,10 +271,10 @@ class DynamicPaletteColorReducer:
             'index_size': index_size,
             'palette_size': palette_size,
             'palette_colors': len(palette),
-            'total_colors': total_colors,
-            'r_bits': self.r_bits,
-            'g_bits': self.g_bits,
-            'b_bits': self.b_bits
+            'mse':mse,
+            'psnr':psnr,
+            'ssimrgb':ssimrgb,
+           
         }
 
 
@@ -279,6 +348,7 @@ class VisualizationUtils:
         plt.show()
     
     @staticmethod
+   
     def display_bit_allocation(r_bits, g_bits, b_bits, total_bits):
         """Display bit allocation as a bar chart"""
         channels = ['Red', 'Green', 'Blue']
@@ -364,8 +434,8 @@ def main():
     print(f"Original image size: {original_img.nbytes} bytes")
     
     # Test different total bit values
-    total_bits_list = [3, 4, 5, 6, 7, 8]
-    methods = ['binary', 'log2']
+    total_bits_list = [8]
+    methods = ['binary']
     
     for total_bits in total_bits_list:
         print(f"\n{'='*60}")
@@ -376,10 +446,10 @@ def main():
         reducer = DynamicPaletteColorReducer(total_bits)
         
         # Display bit allocation
-        VisualizationUtils.display_bit_allocation(reducer.r_bits, reducer.g_bits, reducer.b_bits, total_bits)
+        #VisualizationUtils.display_bit_allocation(reducer.r_bits, reducer.g_bits, reducer.b_bits, total_bits)
         
         # Display quantization levels
-        VisualizationUtils.display_quantization_levels(reducer.levels_r, reducer.levels_g, reducer.levels_b)
+        #VisualizationUtils.display_quantization_levels(reducer.levels_r, reducer.levels_g, reducer.levels_b)
         
         for method in methods:
             print(f"\n--- Using {method.upper()} search method ---")
@@ -389,9 +459,9 @@ def main():
             
             # Calculate statistics
             stats = reducer.calculate_compression_stats(original_img, index_map, palette)
-            
-            print(f"Bit allocation: R={stats['r_bits']}, G={stats['g_bits']}, B={stats['b_bits']}")
-            print(f"Total colors: {stats['total_colors']}")
+            reducer.display_comparison(original_img,quantized_img,stats)
+            #print(f"Bit allocation: R={stats['r_bits']}, G={stats['g_bits']}, B={stats['b_bits']}")
+            #print(f"Total colors: {stats['total_colors']}")
             print(f"Original size: {stats['original_size']} bytes")
             print(f"Compressed size: {stats['compressed_size']} bytes")
             print(f"Compression ratio: {stats['compression_ratio']:.2f}:1")
@@ -402,12 +472,12 @@ def main():
             reconstructed_img = reducer.reconstruct_from_palette(index_map, palette)
             
             # Display results
-            title = f"Dynamic {total_bits}-bit ({stats['r_bits']}-{stats['g_bits']}-{stats['b_bits']})"
-            VisualizationUtils.display_comparison(original_img, reconstructed_img, title)
+            #title = f"Dynamic {total_bits}-bit ({stats['r_bits']}-{stats['g_bits']}-{stats['b_bits']})"
+            #VisualizationUtils.display_comparison(original_img, reconstructed_img, title)
             
             # Display palette if not too large
-            if stats['palette_colors'] <= 256:  # Show palette if reasonable size
-                VisualizationUtils.display_palette(palette, f"{total_bits}-bit Palette ({method})")
+            #if stats['palette_colors'] <= 256:  # Show palette if reasonable size
+                #VisualizationUtils.display_palette(palette, f"{total_bits}-bit Palette ({method})")
             
             # Verify reconstruction quality
             mse = np.mean((original_img.astype(float) - reconstructed_img.astype(float)) ** 2)
